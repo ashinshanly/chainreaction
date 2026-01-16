@@ -184,23 +184,23 @@ export class PhysicsRenderer {
             const r = 10; // Slightly larger for visibility
             this.ctx.arc(0, 0, r, 0, Math.PI * 2);
 
-            // 3D Sphere Look (Matching CSS)
-            // Gradient center offset to top-left (-30%, -30%)
+            // Opaque & Glowy Look (Matching CSS)
             const grad = this.ctx.createRadialGradient(
-                -r * 0.3, -r * 0.3, r * 0.1, // Inner light source
-                0, 0, r // Outer edge
+                -r * 0.3, -r * 0.3, r * 0.1,
+                0, 0, r
             );
-            grad.addColorStop(0, '#fff'); // Specular highlight
-            grad.addColorStop(0.4, atom.color); // Body color
-            grad.addColorStop(1, '#000'); // Shadow edge
+            // We can't easily use color-mix in canvas, so we approximate
+            grad.addColorStop(0, '#ffffff'); // Center highlight
+            grad.addColorStop(0.3, atom.color); // Bright core
+            grad.addColorStop(1, atom.color); // Solid Edge (not black)
 
             this.ctx.fillStyle = grad;
             this.ctx.fill();
 
-            // Core glow
-            this.ctx.shadowBlur = 15;
+            // Strong Glow
+            this.ctx.shadowBlur = 20;
             this.ctx.shadowColor = atom.color;
-            // this.ctx.fill(); // Avoid double fill with shadow, might look messy. Shadow on draw is enough.
+            this.ctx.fill(); // Re-fill to apply shadow strongly
 
             this.ctx.restore();
         });

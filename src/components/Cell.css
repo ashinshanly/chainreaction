@@ -163,16 +163,15 @@
     height: 100%;
     border-radius: 50%;
 
-    /* 3D SPHERE LOOK */
+    /* OPAQUE & GLOWY LOOK */
     background: radial-gradient(circle at 30% 30%,
-            white,
-            var(--atom-color) 45%,
-            black 150%);
+            color-mix(in srgb, var(--atom-color), white 60%) 0%,
+            var(--atom-color) 60%);
 
-    /* Deep shadow to make it pop off the board */
+    /* Strong Neon Glow */
     box-shadow:
-        0 4px 8px rgba(0, 0, 0, 0.4),
-        inset 0 -4px 6px rgba(0, 0, 0, 0.3);
+        0 0 12px 2px var(--atom-glow),
+        inset -2px -2px 4px rgba(0, 0, 0, 0.2);
 
     /* Float animation only. No rotation. */
     animation: atomFloat 2s ease-in-out infinite, atomPop 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
