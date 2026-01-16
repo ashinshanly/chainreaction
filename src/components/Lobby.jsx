@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { PLAYER_COLORS } from '../utils/gameLogic';
+import { LobbyBackground } from './LobbyBackground';
 import './Lobby.css';
 
 export function Lobby({
@@ -76,6 +77,7 @@ export function Lobby({
 
     return (
         <div className="lobby-container">
+            <LobbyBackground />
             <div className="lobby-card">
                 {/* Header */}
                 <div className="lobby-header">
