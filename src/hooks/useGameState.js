@@ -317,8 +317,9 @@ export function useGameState() {
             setFlyingAtoms(flights);
 
             // 3. Wait for Flight Animation
-            // (Explosion expand: 0.1s) + (Flight: 0.3s)
-            await new Promise(resolve => setTimeout(resolve, 350));
+            // (Explosion expand + Flight + Elastic settle)
+            // GSAP duration is ~0.5s, adding buffering
+            await new Promise(resolve => setTimeout(resolve, 550));
 
             // 4. Update Grid with results (Landed atoms)
             const snapshot = await get(gameRef);
