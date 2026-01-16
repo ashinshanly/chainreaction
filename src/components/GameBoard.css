@@ -57,6 +57,12 @@
     white-space: nowrap;
 }
 
+.hud-player.eliminated {
+    opacity: 0.2;
+    filter: grayscale(100%);
+    text-decoration: line-through;
+}
+
 .hud-player.active {
     opacity: 1;
     transform: scale(1.05);

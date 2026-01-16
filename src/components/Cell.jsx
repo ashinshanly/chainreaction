@@ -57,13 +57,19 @@ export function Cell({
             atoms.push(
                 <div
                     key={i}
-                    className={`atom atom-${count}-${i} ${isExploding ? 'exploding' : ''}`}
+                    className={`atom-group atom-${count}-${i} ${isExploding ? 'exploding' : ''}`}
                     style={{
-                        '--atom-color': color?.primary || '#fff',
-                        '--atom-glow': color?.glow || 'rgba(255,255,255,0.5)',
                         '--atom-delay': `${i * 0.1}s`
                     }}
-                />
+                >
+                    <div
+                        className="atom"
+                        style={{
+                            '--atom-color': color?.primary || '#fff',
+                            '--atom-glow': color?.glow || 'rgba(255,255,255,0.5)'
+                        }}
+                    />
+                </div>
             );
         }
 
@@ -80,7 +86,7 @@ export function Cell({
             data-critical-mass={criticalMass}
         >
             <div className="cell-inner">
-                <div className="atoms-container">
+                <div className="atoms-container" data-atom-count={atomCount}>
                     {renderAtoms()}
                 </div>
             </div>

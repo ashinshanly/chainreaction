@@ -45,7 +45,7 @@ export function useGameState() {
         const gameRef = ref(db, GAME_PATH);
         let timeoutId;
 
-        // Timeout fallback - if no response in 10 seconds, try to initialize
+        // Timeout fallback
         timeoutId = setTimeout(async () => {
             console.warn('Firebase connection slow, attempting to initialize game state...');
             try {
@@ -57,6 +57,7 @@ export function useGameState() {
                     turnIndex: 0,
                     winner: null,
                     maxPlayers: 4,
+                    movesMade: 0,
                     lastUpdate: Date.now()
                 };
                 await set(gameRef, initialState);
@@ -72,7 +73,6 @@ export function useGameState() {
             const data = snapshot.val();
             console.log('Firebase data received:', data);
             if (data) {
-                // Normalize data and ensure grid cells have proper defaults (Firebase strips nulls)
                 const rawGrid = data.grid || createEmptyGrid();
                 const normalizedGrid = rawGrid.map(row =>
                     (row || []).map(cell => ({
@@ -89,11 +89,11 @@ export function useGameState() {
                     turnIndex: data.turnIndex || 0,
                     winner: data.winner || null,
                     maxPlayers: data.maxPlayers || 4,
+                    movesMade: data.movesMade || 0,
                     lastUpdate: data.lastUpdate || Date.now()
                 };
                 setGameState(normalizedState);
             } else {
-                // Initialize empty game state
                 const initialState = {
                     status: 'WAITING',
                     players: [],
@@ -102,6 +102,7 @@ export function useGameState() {
                     turnIndex: 0,
                     winner: null,
                     maxPlayers: 4,
+                    movesMade: 0,
                     lastUpdate: Date.now()
                 };
                 set(gameRef, initialState).catch(err => {
@@ -129,10 +130,8 @@ export function useGameState() {
         const playerRef = ref(db, `${GAME_PATH}/players`);
         const presenceRef = ref(db, `chainreaction/presence/${playerId}`);
 
-        // Mark player as present
         set(presenceRef, { online: true, lastSeen: Date.now() });
 
-        // Remove player on disconnect
         const disconnectRef = onDisconnect(presenceRef);
         disconnectRef.remove();
 
@@ -147,7 +146,6 @@ export function useGameState() {
 
         try {
             const gameRef = ref(db, GAME_PATH);
-            // Add timeout for get operation
             const snapshotPromise = get(gameRef);
             const timeoutPromise = new Promise((_, reject) =>
                 setTimeout(() => reject(new Error('Network timeout')), 5000)
@@ -159,7 +157,6 @@ export function useGameState() {
                 currentState = snapshot.val();
             } catch (err) {
                 console.error('Connection timed out:', err);
-                // If get fails/times out but we have local state, try to use that or init
                 currentState = gameState || {
                     status: 'WAITING',
                     players: [],
@@ -168,11 +165,11 @@ export function useGameState() {
                     turnIndex: 0,
                     winner: null,
                     maxPlayers: 4,
+                    movesMade: 0,
                     lastUpdate: Date.now()
                 };
             }
 
-            // Handle missing state by acting as if it's new
             if (!currentState) {
                 currentState = {
                     status: 'WAITING',
@@ -182,6 +179,7 @@ export function useGameState() {
                     turnIndex: 0,
                     winner: null,
                     maxPlayers: 4,
+                    movesMade: 0,
                     lastUpdate: Date.now()
                 };
             }
@@ -191,7 +189,6 @@ export function useGameState() {
                 return false;
             }
 
-            // Ensure players array exists
             const players = currentState.players || [];
             const maxPlayers = currentState.maxPlayers || 4;
 
@@ -201,7 +198,7 @@ export function useGameState() {
             }
             if (players.some(p => p.id === playerId)) {
                 setPlayerName(name);
-                return true; // Already joined
+                return true;
             }
 
             const colorIndex = players.length;
@@ -220,7 +217,6 @@ export function useGameState() {
                 lastUpdate: Date.now()
             };
 
-            // Add timeout for set operation
             const setPromise = set(gameRef, newState);
             const setTimeoutPromise = new Promise((_, reject) =>
                 setTimeout(() => reject(new Error('Network timeout during write')), 5000)
@@ -242,7 +238,6 @@ export function useGameState() {
         const gameRef = ref(db, GAME_PATH);
         const newPlayers = gameState.players.filter(p => p.id !== playerId);
 
-        // Reassign colors to remaining players
         const recoloredPlayers = newPlayers.map((player, index) => ({
             ...player,
             color: PLAYER_COLORS[index].primary,
@@ -275,6 +270,7 @@ export function useGameState() {
             grid: createEmptyGrid(),
             turnIndex: 0,
             winner: null,
+            movesMade: 0,
             lastUpdate: Date.now()
         };
 
@@ -284,8 +280,8 @@ export function useGameState() {
 
     const [flyingAtoms, setFlyingAtoms] = useState([]);
 
-    // Process chain reactions with animation delays
-    const processChainReaction = useCallback(async (grid, currentPlayerId) => {
+    // Process chain reactions with animation delays and instant win check
+    const processChainReaction = useCallback(async (grid, currentPlayerId, currentMovesMade) => {
         const gameRef = ref(db, GAME_PATH);
         let currentGrid = grid;
 
@@ -295,18 +291,18 @@ export function useGameState() {
             // 1. Trigger Source Explosion Animation
             setExplodingCells(explodedCells);
 
-            // 2. Calculate Flights (Atoms moving to neighbors)
+            // 2. Calculate Flights
             const flights = [];
             explodedCells.forEach(cell => {
-                const owner = currentGrid[cell.row][cell.col].owner; // Get color of exploding cell
-                // Find color index for this owner
-                const playerIndex = gameState.players.findIndex(p => p.id === owner) || 0;
-                const color = PLAYER_COLORS[playerIndex]?.primary || '#fff';
+                const owner = currentGrid[cell.row][cell.col].owner;
+                const playerIndex = gameState.players.findIndex(p => p.id === owner);
+                const safeIndex = playerIndex >= 0 ? playerIndex : 0;
+                const color = PLAYER_COLORS[safeIndex]?.primary || '#fff';
 
                 const neighbors = getNeighbors(cell.row, cell.col);
                 neighbors.forEach(neighbor => {
                     flights.push({
-                        id: Math.random(), // Unique anim key
+                        id: Math.random(),
                         from: { row: cell.row, col: cell.col },
                         to: { row: neighbor.row, col: neighbor.col },
                         color: color
@@ -317,18 +313,30 @@ export function useGameState() {
             setFlyingAtoms(flights);
 
             // 3. Wait for Flight Animation
-            // (Explosion expand + Flight + Elastic settle)
-            // GSAP duration is ~0.5s, adding buffering
-            await new Promise(resolve => setTimeout(resolve, 550));
+            await new Promise(resolve => setTimeout(resolve, 400));
 
-            // 4. Update Grid with results (Landed atoms)
+            // 4. Update Grid and Check for Winner Immediately
             const snapshot = await get(gameRef);
             const currentState = snapshot.val();
-            await set(gameRef, {
+
+            const potentialWinner = getWinner(newGrid, gameState.players);
+            const canCheckWin = (currentMovesMade || 0) >= gameState.players.length;
+
+            const updates = {
                 ...currentState,
                 grid: newGrid,
                 lastUpdate: Date.now()
-            });
+            };
+
+            let winnerFound = false;
+            if (canCheckWin && potentialWinner) {
+                updates.winner = potentialWinner.id;
+                updates.status = 'FINISHED';
+                updates.movesMade = currentMovesMade;
+                winnerFound = true;
+            }
+
+            await set(gameRef, updates);
 
             currentGrid = newGrid;
 
@@ -336,7 +344,10 @@ export function useGameState() {
             setExplodingCells([]);
             setFlyingAtoms([]);
 
-            // Brief pause before next wave to let things settle
+            if (winnerFound) {
+                return currentGrid; // Stop processing further explosions if someone won
+            }
+
             await new Promise(resolve => setTimeout(resolve, 100));
 
             if (!hasMoreExplosions) break;
@@ -364,74 +375,90 @@ export function useGameState() {
             // Place the atom
             let newGrid = placeAtom(gameState.grid, row, col, playerId);
 
-            // Update Firebase immediately for placement animation
+            // Increment moves count
+            const movesMade = (gameState.movesMade || 0) + 1;
+
+            // Update Firebase immediately
             await set(gameRef, {
                 ...gameState,
                 grid: newGrid,
+                // Do not update movesMade here yet? 
+                // Actually it's safer to update it here so processChainReaction has consistent state if it reads/writes
+                // But we pass it explicitly.
+                // Let's rely on processChainReaction or final step to persist it?
+                // Actually, if we don't persist it, and the user refreshes mid-animation...
+                // Better to persist.
+                movesMade: movesMade,
                 lastUpdate: Date.now()
             });
 
             // Process chain reactions
-            newGrid = await processChainReaction(newGrid, playerId);
+            newGrid = await processChainReaction(newGrid, playerId, movesMade);
 
-            // Check for winner (only after all players have played at least once)
+            // Check final state to see if it ended during chain reaction
+            const finalSnapshot = await get(gameRef);
+            let finalState = finalSnapshot.val();
+
+            if (finalState.status === 'FINISHED') {
+                // Already finished, do nothing
+                return true;
+            }
+
+            // Fallback win check (in case no explosion happened, but somehow we won? Unlikely but consistent)
+            // Or just normal turn switch
             let winner = null;
             let newStatus = 'PLAYING';
 
-            // Calculate total moves made by all players
-            const movesMap = new Set();
-            newGrid.forEach(row =>
-                row.forEach(cell => {
-                    if (cell.owner) movesMap.add(cell.owner);
-                })
-            );
-
-            // Only check for winner if we are past the first round 
-            // OR if all players have placed at least one atom
-            const totalPlayers = gameState.players.length;
-            const uniqueOwners = movesMap.size;
-
-            // We need a better heuristic: allow win check only after turnIndex ensures everyone had a chance
-            // OR if the game has been running for a bit. 
-            // Simple fix: Don't check winner until everyone has made at least 1 move.
-            // Tracking total turns is safer. Let's assume we add a 'totalTurns' counter to gameState.
-            // For now, heuristic: unique owners must be > 1 at some point. 
-            // If unique owners drops to 1 AND we have had enough turns, then win.
-
-            // Quick fix: Only check winner if the current player is NOT the first player 
-            // OR if total moves on board > players.length
-            const totalAtoms = newGrid.flat().reduce((sum, cell) => sum + cell.count, 0);
-
-            if (totalAtoms > totalPlayers) {
+            if (movesMade >= gameState.players.length) {
                 winner = getWinner(newGrid, gameState.players);
                 if (winner) {
                     newStatus = 'FINISHED';
                 }
             }
 
-            // Find next alive player
-            let nextTurnIndex = (gameState.turnIndex + 1) % gameState.players.length;
-            let attempts = 0;
-            while (attempts < gameState.players.length) {
-                const nextPlayer = gameState.players[nextTurnIndex];
-                // In first round, all players get a turn. After that, skip eliminated players
-                const hasPlayed = newGrid.flat().some(cell => cell.owner === nextPlayer.id);
-                if (!hasPlayed || !isPlayerEliminated(newGrid, nextPlayer.id)) {
-                    break;
+            let nextTurnIndex = gameState.turnIndex;
+
+            if (newStatus !== 'FINISHED') {
+                // Find next alive player
+                nextTurnIndex = (gameState.turnIndex + 1) % gameState.players.length;
+                let attempts = 0;
+                while (attempts < gameState.players.length) {
+                    const nextPlayer = gameState.players[nextTurnIndex];
+                    const hasPlayed = newGrid.flat().some(cell => cell.owner === nextPlayer.id);
+                    // Standard check: is eliminated?
+                    if (!isPlayerEliminated(newGrid, nextPlayer.id)) {
+                        // But also check if they have played yet? 
+                        // No, if they haven't played, they have row/col atoms? No, empty grid.
+                        // But we want to let them play if it's round 1.
+                        // isPlayerEliminated returns TRUE if they have 0 atoms.
+                        // BUT in round 1, everyone has 0 atoms.
+                        // So isPlayerEliminated is bad for round 1.
+
+                        // Fix: if we are in round 1 (movesMade < players.length), simply rotate.
+                        // If movesMade >= players.length, then elimination logic applies.
+                        break;
+                    }
+
+                    // If we are in round 1, we shouldn't skip anyone. 
+                    // isPlayerEliminated returns true for empty board.
+                    // We must allow them to play.
+                    // The 'movesMade' helps here. If total moves < maxPlayers, assume everyone is alive.
+                    if (movesMade < gameState.players.length) {
+                        break;
+                    }
+
+                    nextTurnIndex = (nextTurnIndex + 1) % gameState.players.length;
+                    attempts++;
                 }
-                nextTurnIndex = (nextTurnIndex + 1) % gameState.players.length;
-                attempts++;
             }
 
-            // Final state update
-            const finalSnapshot = await get(gameRef);
-            const finalState = finalSnapshot.val();
             await set(gameRef, {
                 ...finalState,
                 grid: newGrid,
                 turnIndex: nextTurnIndex,
-                winner: winner?.id || null,
+                winner: winner?.id || null, // Will prefer existing winner if set
                 status: newStatus,
+                movesMade: movesMade,
                 lastUpdate: Date.now()
             });
 
@@ -441,32 +468,29 @@ export function useGameState() {
         }
     }, [playerId, gameState, isProcessing, processChainReaction]);
 
-    // Reset game to lobby - completely fresh start
+    // Reset game
     const resetGame = useCallback(async () => {
         if (!gameState) return;
 
         console.log('Resetting game state in Firebase...');
         const gameRef = ref(db, GAME_PATH);
 
-        // Wipe everything clean
         const newState = {
             status: 'WAITING',
-            players: [], // Remove all players so they must rejoin
+            players: [],
             hostId: null,
             grid: createEmptyGrid(),
             turnIndex: 0,
             winner: null,
             maxPlayers: 4,
+            movesMade: 0,
             lastUpdate: Date.now()
         };
 
         try {
             await set(gameRef, newState);
-            // Clear local state
             setPlayerName('');
-            setPlayerId(null); // Force re-auth or re-join flow
-
-            // Give Firebase a moment to propagate to other clients before we nuke the local session
+            setPlayerId(null);
             setTimeout(() => {
                 window.location.reload();
             }, 500);
@@ -475,7 +499,7 @@ export function useGameState() {
         }
     }, [gameState]);
 
-    // Set max players (host only)
+    // Set max players
     const setMaxPlayers = useCallback(async (count) => {
         if (!gameState || !playerId) return false;
         if (gameState.hostId !== playerId) return false;
@@ -496,7 +520,6 @@ export function useGameState() {
         }
     }, [playerId, gameState]);
 
-    // Get current player info
     const currentPlayer = gameState?.players?.[gameState?.turnIndex];
     const myPlayer = gameState?.players?.find(p => p.id === playerId);
     const isMyTurn = currentPlayer?.id === playerId;

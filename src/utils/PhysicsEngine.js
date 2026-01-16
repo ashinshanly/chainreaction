@@ -105,41 +105,27 @@ export class PhysicsRenderer {
             }
         });
 
-        // Simulating the complex motion
-        // We animate a 'progress' value from 0 to 1, and update x/y/z in onUpdate
-
-        // Anticipation: Suck in slightly
+        // Instant Launch & Arc (No anticipation)
         tl.to(atom, {
-            duration: 0.15,
-            ease: "back.in(2)",
-            scaleX: 0.8,
-            scaleY: 0.8,
-        });
-
-        // Launch & Arc
-        tl.to(atom, {
-            duration: 0.35,
-            ease: "power2.inOut", // Smooth flight
+            duration: 0.35, // Faster flight (was 0.5 total)
+            ease: "power2.inOut",
             x: endPos.x,
             y: endPos.y,
-            scaleX: 1, // Reset scale for impact
-            scaleY: 1,
             onUpdate: function () {
                 const p = this.progress();
                 // Arc logic: Parabolic Z height
-                // Max height at middle of flight
-                atom.z = Math.sin(p * Math.PI) * 50;
+                // Max height at middle of flight (Reduced height for tighter feel)
+                atom.z = Math.sin(p * Math.PI) * 30;
 
-                // Squash and stretch based on velocity would be derived here
-                // For simplicity in this tween, we rotate towards target
+                // Squash and stretch based on velocity
                 const dx = endPos.x - startPos.x;
                 const dy = endPos.y - startPos.y;
                 atom.rotation = Math.atan2(dy, dx);
 
                 // Stretch along velocity (approximate)
                 if (p > 0.1 && p < 0.9) {
-                    atom.scaleX = 1.3; // Long
-                    atom.scaleY = 0.7; // Thin
+                    atom.scaleX = 1.4; // Slightly longer for speed effect
+                    atom.scaleY = 0.6; // Thinner
                 } else {
                     atom.scaleX = 1;
                     atom.scaleY = 1;

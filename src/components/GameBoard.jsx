@@ -1,7 +1,7 @@
 import React from 'react';
 import { Cell } from './Cell';
 import { FlyingAtoms } from './FlyingAtoms';
-import { PLAYER_COLORS, GRID_ROWS, GRID_COLS } from '../utils/gameLogic';
+import { PLAYER_COLORS, GRID_ROWS, GRID_COLS, isPlayerEliminated } from '../utils/gameLogic';
 import './GameBoard.css';
 
 export function GameBoard({
@@ -47,22 +47,29 @@ export function GameBoard({
             {/* Top HUD: Minimalist & Sleek */}
             <div className="game-hud">
                 <div className="hud-players">
-                    {players.map((player, index) => (
-                        <div
-                            key={player.id}
-                            className={`hud-player ${player.id === currentPlayer.id ? 'active' : ''}`}
-                            style={{
-                                '--p-color': PLAYER_COLORS[index].primary,
-                                '--p-glow': PLAYER_COLORS[index].glow
-                            }}
-                        >
-                            <div className="hud-orb"></div>
-                            <span className="hud-name">
-                                {player.name}
-                                {player.id === playerId && <small> (You)</small>}
-                            </span>
-                        </div>
-                    ))}
+                    {players.map((player, index) => {
+                        // Check if eliminated (only after game has really started)
+                        const movesMade = gameState.movesMade || 0;
+                        const isEliminated = movesMade >= players.length && isPlayerEliminated(grid, player.id);
+
+                        return (
+                            <div
+                                key={player.id}
+                                className={`hud-player ${player.id === currentPlayer.id ? 'active' : ''} ${isEliminated ? 'eliminated' : ''}`}
+                                style={{
+                                    '--p-color': PLAYER_COLORS[index].primary,
+                                    '--p-glow': PLAYER_COLORS[index].glow
+                                }}
+                            >
+                                <div className="hud-orb"></div>
+                                <span className="hud-name">
+                                    {player.name}
+                                    {isEliminated && <small> (Out)</small>}
+                                    {player.id === playerId && <small> (You)</small>}
+                                </span>
+                            </div>
+                        );
+                    })}
                 </div>
 
                 <div className="hud-controls">

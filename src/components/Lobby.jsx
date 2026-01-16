@@ -250,7 +250,7 @@ export function Lobby({
                             </li>
                             <li>
                                 <div className="rule-icon">💥</div>
-                                <span>Cells explode when they reach critical mass (Neighbors + 1).</span>
+                                <span>Cells explode when they reach critical mass (Number of neighbours).</span>
                             </li>
                             <li>
                                 <div className="rule-icon">⚡</div>

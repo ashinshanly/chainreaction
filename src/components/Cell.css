@@ -35,26 +35,9 @@
     opacity: 1;
 }
 
+/* Critical state: No cell vibration, just border highlight */
 .cell.critical {
-    animation: criticalPulse 0.8s ease-in-out infinite;
-    border-color: rgba(255, 255, 255, 0.4);
-}
-
-@keyframes criticalPulse {
-
-    0%,
-    100% {
-        background: rgba(255, 255, 255, 0.05);
-        border-color: rgba(255, 255, 255, 0.15);
-        transform: scale(1);
-    }
-
-    50% {
-        background: rgba(255, 255, 255, 0.15);
-        border-color: rgba(255, 255, 255, 0.5);
-        box-shadow: inset 0 0 20px rgba(255, 255, 255, 0.2);
-        transform: scale(0.98);
-    }
+    border-color: rgba(255, 255, 255, 0.5);
 }
 
 .cell.exploding {
@@ -112,9 +95,9 @@
 .cell-inner {
     width: 100%;
     height: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    position: relative;
+    display: grid;
+    place-items: center;
 }
 
 .atoms-container {
@@ -126,7 +109,35 @@
     justify-content: center;
 }
 
-.atom {
+/* Cluster Rotation */
+/* We only rotate if count >= 2 to mimic electron orbits */
+.atoms-container[data-atom-count="2"],
+.atoms-container[data-atom-count="3"],
+.atoms-container[data-atom-count="4"] {
+    animation: clusterOrbit 4s linear infinite;
+}
+
+/* For critical mass, maybe spin faster? */
+.cell.critical .atoms-container {
+    animation-duration: 1s;
+    /* DANGER SPEED */
+}
+
+@keyframes clusterOrbit {
+    from {
+        transform: rotate(0deg);
+    }
+
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* 
+   WRAPPER: Handles Position on the grid 
+   Uses --x and --y to translate from center
+*/
+.atom-group {
     position: absolute;
     width: 36%;
     height: 36%;
@@ -134,25 +145,107 @@
     min-height: 14px;
     max-width: 32px;
     max-height: 32px;
-    border-radius: 50%;
-    background: radial-gradient(circle at 35% 35%,
-            color-mix(in srgb, var(--atom-color) 85%, white 15%),
-            var(--atom-color));
-    box-shadow:
-        0 6px 15px var(--atom-glow),
-        inset 0 -3px 6px rgba(0, 0, 0, 0.4);
-    animation: atomSpin 3s linear infinite, atomFloat 2s ease-in-out infinite, atomPop 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-    animation-delay: var(--atom-delay, 0s);
     z-index: 5;
+    left: 50%;
+    top: 50%;
+    margin-left: -18%;
+    margin-top: -18%;
+
+    transform: translate(var(--x, 0), var(--y, 0));
+    pointer-events: none;
 }
 
-@keyframes atomSpin {
+/* 
+   ATOM: Handles Visuals + Counter-Rotation (to keep light source fixed)
+*/
+.atom {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+
+    /* 3D SPHERE LOOK */
+    background: radial-gradient(circle at 30% 30%,
+            white,
+            var(--atom-color) 45%,
+            black 150%);
+
+    /* Deep shadow to make it pop off the board */
+    box-shadow:
+        0 4px 8px rgba(0, 0, 0, 0.4),
+        inset 0 -4px 6px rgba(0, 0, 0, 0.3);
+
+    /* Float animation only. No rotation. */
+    animation: atomFloat 2s ease-in-out infinite, atomPop 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    animation-delay: var(--atom-delay, 0s);
+}
+
+/* 
+   If the container orbits, the atoms inside will rotate with it.
+   This rotates the highlight. To fix this, we counter-rotate the atoms.
+*/
+.atoms-container[data-atom-count="2"] .atom,
+.atoms-container[data-atom-count="3"] .atom,
+.atoms-container[data-atom-count="4"] .atom {
+    animation:
+        atomFloat 2s ease-in-out infinite,
+        atomCounterOrbit 4s linear infinite,
+        /* Must match clusterOrbit duration */
+        atomPop 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.cell.critical .atoms-container[data-atom-count] .atom {
+    animation-duration: 2s, 1s, 0.5s;
+    /* Speed up counter-orbit to match cluster-orbit */
+}
+
+@keyframes atomCounterOrbit {
+    from {
+        transform: rotate(0deg);
+    }
+
+    to {
+        transform: rotate(-360deg);
+    }
+}
+
+
+/* Critical State: Stop orbit, start pumping */
+.cell.critical .atoms-container {
+    animation: none;
+    /* Stop the cluster rotation */
+}
+
+/* Stop the group jitter I added before */
+.cell.critical .atom-group {
+    animation: none;
+}
+
+/* The Atoms themselves: Stop counter-orbit, Stop float. Start PUMPING. */
+/* Override specific count selectors */
+.cell.critical .atoms-container[data-atom-count] .atom,
+.cell.critical .atom {
+    animation: atomPump 0.8s ease-in-out infinite alternate;
+}
+
+@keyframes atomPump {
     0% {
-        transform: translate(var(--x, 0), var(--y, 0)) rotateY(0deg);
+        transform: scale(0.95);
     }
 
     100% {
-        transform: translate(var(--x, 0), var(--y, 0)) rotateY(360deg);
+        transform: scale(1.15);
+    }
+}
+
+@keyframes atomCritical {
+
+    /* Deprecated but kept to avoid breakage if ref'd elsewhere */
+    0% {
+        transform: translate(var(--x), var(--y));
+    }
+
+    100% {
+        transform: translate(var(--x), var(--y));
     }
 }
 
@@ -160,27 +253,27 @@
 
     0%,
     100% {
-        transform: translate(var(--x, 0), var(--y, 0)) translateY(0);
+        margin-top: 0;
     }
 
     50% {
-        transform: translate(var(--x, 0), var(--y, 0)) translateY(-4px);
+        margin-top: -4px;
     }
 }
 
 @keyframes atomPop {
     0% {
-        transform: translate(var(--x, 0), var(--y, 0)) scale(0);
+        transform: scale(0);
         opacity: 0;
     }
 
     100% {
-        transform: translate(var(--x, 0), var(--y, 0)) scale(1);
+        transform: scale(1);
         opacity: 1;
     }
 }
 
-/* Atom positions scaled for larger cells */
+/* POSITIONS */
 .atom-1-0 {
     --x: 0;
     --y: 0;
