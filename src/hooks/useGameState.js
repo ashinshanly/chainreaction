@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { db, auth } from '../config/firebase';
 import { signInAnonymously, onAuthStateChanged } from 'firebase/auth';
 import { ref, onValue, set, get, onDisconnect, serverTimestamp } from 'firebase/database';
@@ -23,6 +23,7 @@ export function useGameState() {
     const [isProcessing, setIsProcessing] = useState(false);
     const [explodingCells, setExplodingCells] = useState([]);
     const [connectionError, setConnectionError] = useState(null);
+    const lastProcessedAnimationId = useRef(null);
 
     // Initialize player ID from Firebase Auth
     useEffect(() => {
@@ -58,7 +59,9 @@ export function useGameState() {
                     turnIndex: 0,
                     winner: null,
                     maxPlayers: 4,
+                    maxPlayers: 4,
                     movesMade: 0,
+                    activeAnimation: null,
                     lastUpdate: Date.now()
                 };
                 await set(gameRef, initialState);
@@ -92,8 +95,42 @@ export function useGameState() {
                     winner: data.winner || null,
                     maxPlayers: data.maxPlayers || 4,
                     movesMade: data.movesMade || 0,
+                    activeAnimation: data.activeAnimation || null,
                     lastUpdate: data.lastUpdate || Date.now()
                 };
+
+                // Handle animation sync
+                if (data.activeAnimation && data.activeAnimation.id !== lastProcessedAnimationId.current) {
+                    const { id, cells, color, timestamp } = data.activeAnimation;
+
+                    // Only play if it's recent (within 2 seconds)
+                    if (Date.now() - timestamp < 2000) {
+                        lastProcessedAnimationId.current = id;
+                        setExplodingCells(cells);
+
+                        const flights = [];
+                        cells.forEach(cell => {
+                            const neighbors = getNeighbors(cell.row, cell.col);
+                            neighbors.forEach(neighbor => {
+                                flights.push({
+                                    id: Math.random(),
+                                    from: { row: cell.row, col: cell.col },
+                                    to: { row: neighbor.row, col: neighbor.col },
+                                    color: color
+                                });
+                            });
+                        });
+
+                        setFlyingAtoms(flights);
+
+                        // Auto-clear after animation duration
+                        setTimeout(() => {
+                            setFlyingAtoms([]);
+                            setExplodingCells([]);
+                        }, 400);
+                    }
+                }
+
                 setGameState(normalizedState);
             } else {
                 const initialState = {
@@ -105,7 +142,9 @@ export function useGameState() {
                     turnIndex: 0,
                     winner: null,
                     maxPlayers: 4,
+                    maxPlayers: 4,
                     movesMade: 0,
+                    activeAnimation: null,
                     lastUpdate: Date.now()
                 };
                 set(gameRef, initialState).catch(err => {
@@ -293,34 +332,37 @@ export function useGameState() {
         while (hasExplosion(currentGrid)) {
             const { newGrid, explodedCells, hasMoreExplosions } = processExplosion(currentGrid, currentPlayerId);
 
-            // 1. Trigger Source Explosion Animation
-            setExplodingCells(explodedCells);
+            // 1. Determine Animation Details
+            const firstCell = explodedCells[0];
+            const ownerId = currentGrid[firstCell.row][firstCell.col].owner;
+            const playerIndex = gameState.players.findIndex(p => p.id === ownerId);
+            const safeIndex = playerIndex >= 0 ? playerIndex : 0;
+            const color = PLAYER_COLORS[safeIndex]?.primary || '#fff';
 
-            // 2. Calculate Flights
-            const flights = [];
-            explodedCells.forEach(cell => {
-                const owner = currentGrid[cell.row][cell.col].owner;
-                const playerIndex = gameState.players.findIndex(p => p.id === owner);
-                const safeIndex = playerIndex >= 0 ? playerIndex : 0;
-                const color = PLAYER_COLORS[safeIndex]?.primary || '#fff';
+            // 2. Broadcast Animation Event
+            // We need to fetch the latest state wrapper to update just the animation field first
+            // But we can just use set() to update that specific path if we wanted, 
+            // but for simplicity and consistency with the loop, let's update the whole object based on latest snapshot.
+            const animSnapshot = await get(gameRef);
+            const animState = animSnapshot.val();
 
-                const neighbors = getNeighbors(cell.row, cell.col);
-                neighbors.forEach(neighbor => {
-                    flights.push({
-                        id: Math.random(),
-                        from: { row: cell.row, col: cell.col },
-                        to: { row: neighbor.row, col: neighbor.col },
-                        color: color
-                    });
-                });
+            const animationPayload = {
+                id: Math.random().toString(36).substr(2, 9),
+                cells: explodedCells,
+                color: color,
+                timestamp: Date.now()
+            };
+
+            await set(gameRef, {
+                ...animState,
+                activeAnimation: animationPayload,
+                lastUpdate: Date.now()
             });
 
-            setFlyingAtoms(flights);
-
-            // 3. Wait for Flight Animation
+            // 3. Wait for Flight Animation (matches client listener timeout)
             await new Promise(resolve => setTimeout(resolve, 400));
 
-            // 4. Update Grid and Check for Winner Immediately
+            // 4. Update Grid and Check for Winner
             const snapshot = await get(gameRef);
             const currentState = snapshot.val();
 
@@ -330,6 +372,8 @@ export function useGameState() {
             const updates = {
                 ...currentState,
                 grid: newGrid,
+                // We don't strictly need to clear activeAnimation, but we can. 
+                // Leaving it is fine as the ID check prevents replay.
                 lastUpdate: Date.now()
             };
 
@@ -345,17 +389,18 @@ export function useGameState() {
 
             currentGrid = newGrid;
 
-            // 5. Cleanup Animation State
-            setExplodingCells([]);
-            setFlyingAtoms([]);
-
             if (winnerFound) {
-                return currentGrid; // Stop processing further explosions if someone won
+                return currentGrid;
             }
 
-            await new Promise(resolve => setTimeout(resolve, 100));
-
-            if (!hasMoreExplosions) break;
+            // Small buffer between chain steps if needed, but the 400ms is the main delay.
+            // We can wait a tiny bit to force a visual pause between waves if desired.
+            if (hasMoreExplosions) {
+                await new Promise(resolve => setTimeout(resolve, 100));
+                // Check if we should break? No, loop condition handles it.
+            } else {
+                break;
+            }
         }
 
         return currentGrid;
@@ -464,6 +509,7 @@ export function useGameState() {
                 winner: winner?.id || null, // Will prefer existing winner if set
                 status: newStatus,
                 movesMade: movesMade,
+                activeAnimation: null, // Clear any residual animation state on turn end
                 lastUpdate: Date.now()
             });
 
@@ -490,6 +536,7 @@ export function useGameState() {
             winner: null,
             maxPlayers: 4,
             movesMade: 0,
+            activeAnimation: null,
             lastUpdate: Date.now()
         };
 
