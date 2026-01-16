@@ -1,0 +1,232 @@
+.cell {
+    aspect-ratio: 1;
+    background: rgba(255, 255, 255, 0.06);
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    border-radius: 12px;
+    position: relative;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    cursor: default;
+    overflow: hidden;
+    box-shadow: inset 0 0 15px rgba(0, 0, 0, 0.3);
+}
+
+.cell::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at center, rgba(255, 255, 255, 0.05), transparent 70%);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.cell.clickable {
+    cursor: pointer;
+}
+
+.cell.clickable:hover {
+    background: rgba(255, 255, 255, 0.12);
+    border-color: rgba(255, 255, 255, 0.4);
+    transform: scale(1.02);
+    z-index: 2;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
+}
+
+.cell.clickable:hover::after {
+    opacity: 1;
+}
+
+.cell.critical {
+    animation: criticalPulse 0.8s ease-in-out infinite;
+    border-color: rgba(255, 255, 255, 0.4);
+}
+
+@keyframes criticalPulse {
+
+    0%,
+    100% {
+        background: rgba(255, 255, 255, 0.05);
+        border-color: rgba(255, 255, 255, 0.15);
+        transform: scale(1);
+    }
+
+    50% {
+        background: rgba(255, 255, 255, 0.15);
+        border-color: rgba(255, 255, 255, 0.5);
+        box-shadow: inset 0 0 20px rgba(255, 255, 255, 0.2);
+        transform: scale(0.98);
+    }
+}
+
+.cell.exploding {
+    animation: explode 0.3s cubic-bezier(0.1, 0.9, 0.2, 1);
+    z-index: 10;
+}
+
+@keyframes explode {
+    0% {
+        background: rgba(255, 255, 255, 0.8);
+        transform: scale(1);
+        box-shadow: 0 0 30px rgba(255, 255, 255, 0.8);
+    }
+
+    40% {
+        background: rgba(255, 255, 255, 0.9);
+        transform: scale(1.15);
+        box-shadow: 0 0 50px rgba(255, 255, 255, 1);
+    }
+
+    100% {
+        background: rgba(255, 255, 255, 0.05);
+        transform: scale(1);
+        box-shadow: none;
+    }
+}
+
+.cell.receiving {
+    animation: receive 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes receive {
+    0% {
+        transform: scale(1);
+    }
+
+    30% {
+        transform: scale(1.15);
+        background: rgba(255, 255, 255, 0.2);
+    }
+
+    50% {
+        transform: scale(0.95);
+    }
+
+    70% {
+        transform: scale(1.05);
+    }
+
+    100% {
+        transform: scale(1);
+    }
+}
+
+.cell-inner {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.atoms-container {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.atom {
+    position: absolute;
+    width: 36%;
+    height: 36%;
+    min-width: 14px;
+    min-height: 14px;
+    max-width: 32px;
+    max-height: 32px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 35%,
+            color-mix(in srgb, var(--atom-color) 85%, white 15%),
+            var(--atom-color));
+    box-shadow:
+        0 6px 15px var(--atom-glow),
+        inset 0 -3px 6px rgba(0, 0, 0, 0.4);
+    animation: atomSpin 3s linear infinite, atomFloat 2s ease-in-out infinite, atomPop 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    animation-delay: var(--atom-delay, 0s);
+    z-index: 5;
+}
+
+@keyframes atomSpin {
+    0% {
+        transform: translate(var(--x, 0), var(--y, 0)) rotateY(0deg);
+    }
+
+    100% {
+        transform: translate(var(--x, 0), var(--y, 0)) rotateY(360deg);
+    }
+}
+
+@keyframes atomFloat {
+
+    0%,
+    100% {
+        transform: translate(var(--x, 0), var(--y, 0)) translateY(0);
+    }
+
+    50% {
+        transform: translate(var(--x, 0), var(--y, 0)) translateY(-4px);
+    }
+}
+
+@keyframes atomPop {
+    0% {
+        transform: translate(var(--x, 0), var(--y, 0)) scale(0);
+        opacity: 0;
+    }
+
+    100% {
+        transform: translate(var(--x, 0), var(--y, 0)) scale(1);
+        opacity: 1;
+    }
+}
+
+/* Atom positions scaled for larger cells */
+.atom-1-0 {
+    --x: 0;
+    --y: 0;
+}
+
+.atom-2-0 {
+    --x: -22%;
+    --y: 0;
+}
+
+.atom-2-1 {
+    --x: 22%;
+    --y: 0;
+}
+
+.atom-3-0 {
+    --x: 0;
+    --y: -22%;
+}
+
+.atom-3-1 {
+    --x: -20%;
+    --y: 18%;
+}
+
+.atom-3-2 {
+    --x: 20%;
+    --y: 18%;
+}
+
+.atom-4-0 {
+    --x: -18%;
+    --y: -18%;
+}
+
+.atom-4-1 {
+    --x: 18%;
+    --y: -18%;
+}
+
+.atom-4-2 {
+    --x: -18%;
+    --y: 18%;
+}
+
+.atom-4-3 {
+    --x: 18%;
+    --y: 18%;
+}

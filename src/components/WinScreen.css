@@ -1,0 +1,210 @@
+.win-screen-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.85);
+    backdrop-filter: blur(10px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    animation: fadeIn 0.5s ease-out;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+.confetti-container {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    pointer-events: none;
+}
+
+.confetti {
+    position: absolute;
+    top: -10px;
+    left: var(--x);
+    width: 10px;
+    height: 10px;
+    background: var(--color);
+    animation: fall var(--duration) ease-out var(--delay) forwards;
+    opacity: 0;
+}
+
+@keyframes fall {
+    0% {
+        transform: translateY(0) rotateZ(0deg);
+        opacity: 1;
+    }
+
+    100% {
+        transform: translateY(100vh) rotateZ(720deg);
+        opacity: 0;
+    }
+}
+
+.win-card {
+    background: rgba(20, 20, 35, 0.7);
+    backdrop-filter: blur(32px);
+    -webkit-backdrop-filter: blur(32px);
+    border-radius: 32px;
+    border: 2px solid var(--winner-color);
+    box-shadow:
+        0 0 100px var(--winner-glow),
+        0 40px 100px rgba(0, 0, 0, 0.8),
+        inset 0 0 0 1px rgba(255, 255, 255, 0.1);
+    padding: 64px;
+    text-align: center;
+    animation: scaleIn 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) 0.2s both;
+    max-width: 480px;
+    width: 90%;
+    position: relative;
+    overflow: hidden;
+}
+
+.win-card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at center, var(--winner-glow), transparent 70%);
+    opacity: 0.2;
+    pointer-events: none;
+}
+
+@keyframes scaleIn {
+    from {
+        transform: scale(0.8);
+        opacity: 0;
+    }
+
+    to {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+.trophy-container {
+    margin-bottom: 16px;
+}
+
+.trophy {
+    font-size: 5rem;
+    animation: bounce 1s ease-in-out infinite;
+}
+
+@keyframes bounce {
+
+    0%,
+    100% {
+        transform: translateY(0);
+    }
+
+    50% {
+        transform: translateY(-10px);
+    }
+}
+
+.winner-title {
+    font-family: 'Outfit', sans-serif;
+    font-size: 4rem;
+    font-weight: 800;
+    background: linear-gradient(135deg, #fff, var(--winner-color));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin: 0 0 24px;
+    letter-spacing: -2px;
+    text-shadow: 0 10px 30px var(--winner-glow);
+    filter: drop-shadow(0 0 10px var(--winner-glow));
+}
+
+.winner-name-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    margin-bottom: 12px;
+}
+
+.winner-atom {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: var(--winner-color);
+    box-shadow: 0 0 20px var(--winner-glow);
+    animation: atomPulse 1s ease-in-out infinite;
+}
+
+@keyframes atomPulse {
+
+    0%,
+    100% {
+        transform: scale(1);
+    }
+
+    50% {
+        transform: scale(1.2);
+    }
+}
+
+.winner-name {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--winner-color);
+    margin: 0;
+    text-shadow: 0 0 20px var(--winner-glow);
+}
+
+.winner-message {
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 1.1rem;
+    margin: 0 0 32px;
+}
+
+.play-again-button {
+    padding: 16px 48px;
+    background: linear-gradient(135deg, var(--winner-color), color-mix(in srgb, var(--winner-color), black 30%));
+    border: none;
+    border-radius: 12px;
+    color: #1a1a2e;
+    font-size: 1.2rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.play-again-button:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 10px 30px var(--winner-glow);
+}
+
+@media (max-width: 480px) {
+    .win-card {
+        padding: 32px 24px;
+    }
+
+    .trophy {
+        font-size: 4rem;
+    }
+
+    .winner-title {
+        font-size: 2.5rem;
+    }
+
+    .winner-name {
+        font-size: 1.5rem;
+    }
+}

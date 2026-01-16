@@ -1,0 +1,71 @@
+/* Flying Atom Animation */
+.flying-atoms-layer {
+    /* Fits within game-grid context */
+    overflow: visible;
+}
+
+.flying-atom {
+    position: absolute;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: var(--atom-color);
+    box-shadow: 0 0 10px var(--atom-color);
+
+    /* 
+       We use CSS variables passed from JS for start/end coordinates.
+       Instead of animating top/left, we set the initial top/left to the start position
+       and animate transform to the delta. This is more performant.
+    */
+
+    /* Center the atom on the start cell */
+    left: calc(var(--from-x) * (100% / var(--grid-cols)) + (100% / var(--grid-cols) / 2) - 10px);
+    top: calc(var(--from-y) * (100% / var(--grid-rows)) + (100% / var(--grid-rows) / 2) - 10px);
+
+    /* 
+       Calculate the delta for the transform. 
+       We can't easily do complex math in CSS calc() for deltas if we rely on mixed units, 
+       but here we know the grid percentages.
+       
+       Actually, a simpler approach for performant 60fps animation is:
+       1. Position atom at top-left (0,0) of grid or specific start cell.
+       2. Use transform to move it.
+       
+       However, refactoring the positioning entirely might be risky if grid changes.
+       Let's stick to the plan: use transforms for the MOVEMENT.
+       
+       Start position: defined by left/top above.
+       End position: we need to translate BY the difference.
+    */
+
+    /* 
+       Optimization: Use a custom bezier for a "shoot out" feel 
+       Starts fast (explosion), slows down slightly as it lands (friction/gravityish)
+    */
+    animation: flyToTarget 0.4s cubic-bezier(0.2, 0.6, 0.35, 1) forwards;
+    will-change: transform;
+    z-index: 100;
+}
+
+@keyframes flyToTarget {
+    0% {
+        transform: translate(0, 0) scale(1);
+    }
+
+    50% {
+        /* Stretch effect mid-flight for "speed" */
+        transform:
+            translate(calc((var(--to-x) - var(--from-x)) * (100cqw / var(--grid-cols)) * 0.5),
+                calc((var(--to-y) - var(--from-y)) * (100cqh / var(--grid-rows)) * 0.5)) scale(1.2);
+    }
+
+    100% {
+        /* Move to destination */
+        /* Note: We use container query units (cqw/cqh) if available, or fallback to % */
+        /* Since the parent likely doesn't have container-type, we stick to % */
+        /* 100% refers to the .flying-atoms-layer width/height */
+        transform:
+            translate(calc((var(--to-x) - var(--from-x)) * (100% / var(--grid-cols))),
+                calc((var(--to-y) - var(--from-y)) * (100% / var(--grid-rows)))) scale(1);
+    }
+}

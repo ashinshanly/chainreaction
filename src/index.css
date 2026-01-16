@@ -1,0 +1,28 @@
+/* Import Inter and Outfit fonts */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@500;700;800&display=swap');
+
+:root {
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  line-height: 1.6;
+  font-weight: 400;
+
+  /* Colors */
+  --bg-dark: #050510;
+  --glass-border: rgba(255, 255, 255, 0.08);
+  --glass-bg: rgba(255, 255, 255, 0.03);
+  --primary-glow: rgba(68, 136, 255, 0.5);
+  --danger-glow: rgba(255, 68, 68, 0.5);
+
+  color-scheme: dark;
+  color: rgba(255, 255, 255, 0.92);
+  background-color: var(--bg-dark);
+
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+html {
+  scroll-behavior: smooth;
+}

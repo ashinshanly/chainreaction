@@ -1,0 +1,302 @@
+/* =============================================
+   GAME BOARD - MINIMAL HUD DESIGN
+   ============================================= */
+
+.game-board-container {
+    width: 100%;
+    max-width: 100%;
+    height: 100vh;
+    height: 100dvh;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    background: radial-gradient(circle at top, rgba(30, 40, 70, 0.5) 0%, transparent 80%);
+    padding: 20px;
+    box-sizing: border-box;
+    overflow: hidden;
+    position: relative;
+    font-family: 'Inter', sans-serif;
+}
+
+/* SLEEK HUD */
+.game-hud {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 20px;
+    padding: 12px 20px;
+    margin-bottom: 20px;
+    flex-shrink: 0;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    width: 100%;
+    max-width: 600px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.hud-players {
+    display: flex;
+    gap: 20px;
+    overflow-x: auto;
+    padding-bottom: 2px;
+}
+
+.hud-players::-webkit-scrollbar {
+    display: none;
+}
+
+.hud-player {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    opacity: 0.3;
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    white-space: nowrap;
+}
+
+.hud-player.active {
+    opacity: 1;
+    transform: scale(1.05);
+}
+
+.hud-orb {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--p-color);
+    box-shadow: 0 0 15px var(--p-glow);
+    position: relative;
+}
+
+.hud-player.active .hud-orb::after {
+    content: '';
+    position: absolute;
+    top: -5px;
+    left: -5px;
+    right: -5px;
+    bottom: -5px;
+    border-radius: 50%;
+    border: 1px solid var(--p-color);
+    animation: orbRipple 2s infinite;
+}
+
+@keyframes orbRipple {
+    0% {
+        transform: scale(1);
+        opacity: 0.8;
+    }
+
+    100% {
+        transform: scale(1.8);
+        opacity: 0;
+    }
+}
+
+.hud-name {
+    color: white;
+    font-size: 0.85rem;
+    font-weight: 600;
+    letter-spacing: 0.3px;
+}
+
+.hud-name small {
+    opacity: 0.6;
+    font-weight: 400;
+}
+
+/* END BUTTON & CONTROLS */
+.hud-controls {
+    display: flex;
+    align-items: center;
+    margin-left: 15px;
+}
+
+.hud-end-btn {
+    background: rgba(255, 68, 68, 0.15);
+    border: 1px solid rgba(255, 68, 68, 0.3);
+    color: #ff8888;
+    height: 36px;
+    padding: 0 12px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+.hud-end-btn:hover {
+    background: rgba(255, 68, 68, 0.3);
+    border-color: #ff4444;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(255, 68, 68, 0.2);
+}
+
+.reset-confirm {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(0, 0, 0, 0.3);
+    padding: 4px;
+    border-radius: 12px;
+    animation: fadeIn 0.2s ease;
+}
+
+.reset-confirm span {
+    color: #ff8888;
+    font-size: 0.8rem;
+    font-weight: 600;
+    margin: 0 4px;
+    white-space: nowrap;
+}
+
+.confirm-btn {
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-weight: bold;
+    transition: all 0.2s;
+}
+
+.confirm-btn.yes {
+    background: #ff4444;
+    color: white;
+}
+
+.confirm-btn.yes:hover {
+    background: #ff2222;
+    transform: scale(1.1);
+}
+
+.confirm-btn.no {
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+}
+
+.confirm-btn.no:hover {
+    background: rgba(255, 255, 255, 0.2);
+    transform: scale(1.1);
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(5px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* GRID WRAPPER & GRID */
+.game-grid-wrapper {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 0;
+    position: relative;
+    width: 100%;
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.game-grid {
+    display: grid;
+    grid-template-columns: repeat(var(--grid-cols), 1fr);
+    grid-template-rows: repeat(var(--grid-rows), 1fr);
+    gap: 6px;
+    background: rgba(255, 255, 255, 0.03);
+    padding: 15px;
+    border-radius: 24px;
+    border: 2px solid rgba(255, 255, 255, 0.15);
+    backdrop-filter: blur(20px);
+    box-shadow:
+        0 40px 100px rgba(0, 0, 0, 0.5),
+        inset 0 0 60px rgba(255, 255, 255, 0.02);
+
+    /* SCALE UP */
+    width: min(90vw, 85vh / (var(--grid-rows) / var(--grid-cols)), 600px);
+    height: auto;
+    aspect-ratio: var(--grid-cols) / var(--grid-rows);
+}
+
+/* STATUS BAR */
+.game-status-bar {
+    text-align: center;
+    padding: 20px;
+    flex-shrink: 0;
+}
+
+.your-turn-msg {
+    color: #fff;
+    font-weight: 800;
+    text-transform: uppercase;
+    font-size: 1rem;
+    letter-spacing: 4px;
+    text-shadow: 0 0 20px rgba(255, 255, 255, 0.6);
+    animation: textGlow 2s ease-in-out infinite alternate;
+}
+
+.waiting-msg {
+    color: rgba(255, 255, 255, 0.5);
+    font-size: 0.9rem;
+    font-weight: 500;
+}
+
+@keyframes textGlow {
+    from {
+        opacity: 0.7;
+        transform: scale(1);
+    }
+
+    to {
+        opacity: 1;
+        transform: scale(1.05);
+    }
+}
+
+/* MOBILE ADAPTATIONS */
+@media (max-width: 480px) {
+    .game-board-container {
+        padding: 12px;
+    }
+
+    .game-hud {
+        padding: 10px 15px;
+        margin-bottom: 15px;
+    }
+
+    .hud-players {
+        gap: 15px;
+    }
+
+    .game-grid {
+        width: 95vw;
+        padding: 10px;
+        gap: 4px;
+        border-radius: 16px;
+    }
+
+    .hud-name {
+        font-size: 0.75rem;
+    }
+
+    .your-turn-msg {
+        font-size: 0.8rem;
+        letter-spacing: 2px;
+    }
+}
