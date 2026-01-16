@@ -11,25 +11,67 @@ export function LobbyBackground() {
         let height = window.innerHeight;
         let animationFrameId;
 
+        // Mouse Interaction
+        const mouse = { x: -1000, y: -1000 };
+        const repulsionRadius = 250; // Radius where repulsion starts
+        const repulsionStrength = 2.5; // How hard it pushes
+
+        const handleMouseMove = (e) => {
+            mouse.x = e.clientX;
+            mouse.y = e.clientY;
+        };
+
+        const handleTouchMove = (e) => {
+            if (e.touches.length > 0) {
+                mouse.x = e.touches[0].clientX;
+                mouse.y = e.touches[0].clientY;
+            }
+        };
+
+        window.addEventListener('mousemove', handleMouseMove);
+        window.addEventListener('touchmove', handleTouchMove);
+
         // Particle System
         const particles = [];
-        const particleCount = 15;
-        const connectionDistance = 150;
+        const particleCount = 20;
 
         class Particle {
             constructor() {
                 this.x = Math.random() * width;
                 this.y = Math.random() * height;
-                this.vx = (Math.random() - 0.5) * 2;
-                this.vy = (Math.random() - 0.5) * 2;
-                this.size = Math.random() * 15 + 10; // Radius: 10-25
-                // Pick a random player color
+                this.vx = (Math.random() - 0.5) * 1.5;
+                this.vy = (Math.random() - 0.5) * 1.5;
+                this.size = Math.random() * 12 + 8;
                 const colorObj = PLAYER_COLORS[Math.floor(Math.random() * PLAYER_COLORS.length)];
                 this.color = colorObj.primary;
-                this.mass = this.size; // Simple mass approximation
+                this.mass = this.size;
+                this.baseVx = this.vx;
+                this.baseVy = this.vy;
             }
 
             update() {
+                // Mouse Repulsion
+                const dx = this.x - mouse.x;
+                const dy = this.y - mouse.y;
+                const dist = Math.sqrt(dx * dx + dy * dy);
+
+                if (dist < repulsionRadius) {
+                    const force = (repulsionRadius - dist) / repulsionRadius; // 0 to 1
+                    const angle = Math.atan2(dy, dx);
+
+                    // Push away
+                    this.vx += Math.cos(angle) * force * repulsionStrength;
+                    this.vy += Math.sin(angle) * force * repulsionStrength;
+                }
+
+                // Drag to stabilize speed
+                this.vx *= 0.98;
+                this.vy *= 0.98;
+
+                // Recover speed if too slow
+                if (Math.abs(this.vx) < Math.abs(this.baseVx)) this.vx += this.baseVx * 0.02;
+                if (Math.abs(this.vy) < Math.abs(this.baseVy)) this.vy += this.baseVy * 0.02;
+
                 this.x += this.vx;
                 this.y += this.vy;
 
@@ -56,7 +98,6 @@ export function LobbyBackground() {
                 ctx.beginPath();
                 ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
 
-                // 3D Sphere Gradient
                 const gradient = ctx.createRadialGradient(
                     this.x - this.size * 0.3,
                     this.y - this.size * 0.3,
@@ -65,18 +106,18 @@ export function LobbyBackground() {
                     this.y,
                     this.size
                 );
-                gradient.addColorStop(0, '#fff');
+                // Opaque & Glowy Look
+                gradient.addColorStop(0, '#ffffff');
                 gradient.addColorStop(0.3, this.color);
-                gradient.addColorStop(1, '#000');
+                gradient.addColorStop(1, this.color);
 
                 ctx.fillStyle = gradient;
                 ctx.fill();
 
-                // Simple Glow
                 ctx.shadowBlur = 15;
                 ctx.shadowColor = this.color;
                 ctx.fill();
-                ctx.shadowBlur = 0; // Reset
+                ctx.shadowBlur = 0;
             }
         }
 
@@ -103,23 +144,18 @@ export function LobbyBackground() {
                     const distance = Math.sqrt(dx * dx + dy * dy);
 
                     if (distance < p1.size + p2.size) {
-                        // Elastic Collision Logic
                         const angle = Math.atan2(dy, dx);
                         const sin = Math.sin(angle);
                         const cos = Math.cos(angle);
 
-                        // Rotate velocity
                         const vx1 = p1.vx * cos + p1.vy * sin;
                         const vy1 = p1.vy * cos - p1.vx * sin;
                         const vx2 = p2.vx * cos + p2.vy * sin;
                         const vy2 = p2.vy * cos - p2.vx * sin;
 
-                        // Swap 1D velocity
-                        // (Assume equal mass or size-based mass)
                         const v1Final = ((p1.mass - p2.mass) * vx1 + 2 * p2.mass * vx2) / (p1.mass + p2.mass);
                         const v2Final = ((p2.mass - p1.mass) * vx2 + 2 * p1.mass * vx1) / (p1.mass + p2.mass);
 
-                        // Rotate back
                         const p1vx = v1Final * cos - vy1 * sin;
                         const p1vy = vy1 * cos + v1Final * sin;
                         const p2vx = v2Final * cos - vy2 * sin;
@@ -130,7 +166,6 @@ export function LobbyBackground() {
                         p2.vx = p2vx;
                         p2.vy = p2vy;
 
-                        // Separate particles to prevent sticking
                         const overlap = (p1.size + p2.size - distance) / 2;
                         p1.x -= overlap * cos;
                         p1.y -= overlap * sin;
@@ -154,12 +189,14 @@ export function LobbyBackground() {
             animationFrameId = requestAnimationFrame(animate);
         };
 
-        handleResize(); // Initial size
+        handleResize();
         window.addEventListener('resize', handleResize);
         animate();
 
         return () => {
             window.removeEventListener('resize', handleResize);
+            window.removeEventListener('mousemove', handleMouseMove);
+            window.removeEventListener('touchmove', handleTouchMove);
             cancelAnimationFrame(animationFrameId);
         };
     }, []);
@@ -173,7 +210,7 @@ export function LobbyBackground() {
                 left: 0,
                 width: '100%',
                 height: '100%',
-                zIndex: 0, // Behind content
+                zIndex: 0,
                 background: 'radial-gradient(circle at center, #1a1a2e 0%, #000 100%)',
                 pointerEvents: 'none'
             }}
