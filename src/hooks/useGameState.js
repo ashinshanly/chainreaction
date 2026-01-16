@@ -53,6 +53,7 @@ export function useGameState() {
                     status: 'WAITING',
                     players: [],
                     hostId: null,
+                    hostJoinedAt: null,
                     grid: createEmptyGrid(),
                     turnIndex: 0,
                     winner: null,
@@ -85,6 +86,7 @@ export function useGameState() {
                     status: data.status || 'WAITING',
                     players: data.players || [],
                     hostId: data.hostId || null,
+                    hostJoinedAt: data.hostJoinedAt || ((data.players && data.players.length > 0) ? (data.lastUpdate || Date.now()) : null),
                     grid: normalizedGrid,
                     turnIndex: data.turnIndex || 0,
                     winner: data.winner || null,
@@ -98,6 +100,7 @@ export function useGameState() {
                     status: 'WAITING',
                     players: [],
                     hostId: null,
+                    hostJoinedAt: null,
                     grid: createEmptyGrid(),
                     turnIndex: 0,
                     winner: null,
@@ -214,6 +217,7 @@ export function useGameState() {
                 ...currentState,
                 players: newPlayers,
                 hostId: currentState.hostId || playerId,
+                hostJoinedAt: currentState.hostJoinedAt || (players.length === 0 ? Date.now() : null),
                 lastUpdate: Date.now()
             };
 
@@ -250,6 +254,7 @@ export function useGameState() {
             ...gameState,
             players: recoloredPlayers,
             hostId: newHostId,
+            hostJoinedAt: recoloredPlayers.length > 0 ? gameState.hostJoinedAt : null,
             lastUpdate: Date.now()
         };
 
@@ -479,6 +484,7 @@ export function useGameState() {
             status: 'WAITING',
             players: [],
             hostId: null,
+            hostJoinedAt: null,
             grid: createEmptyGrid(),
             turnIndex: 0,
             winner: null,

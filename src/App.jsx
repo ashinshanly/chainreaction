@@ -89,6 +89,7 @@ function App() {
             onLeave={leaveGame}
             onStart={startGame}
             onSetMaxPlayers={setMaxPlayers}
+            onReset={resetGame}
             connectionError={connectionError}
           />
         )}
@@ -104,6 +105,7 @@ function App() {
             onCellClick={makeMove}
             onEndGame={resetGame}
             isHost={isHost}
+            isSpectator={!isInGame}
           />
         )}
 

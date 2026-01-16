@@ -13,6 +13,7 @@ export function GameBoard({
     flyingAtoms,
     onCellClick,
     onEndGame,
+    isSpectator,
 }) {
     const { grid, players, turnIndex } = gameState;
     const currentPlayer = players[turnIndex];
@@ -134,13 +135,20 @@ export function GameBoard({
             </div>
 
             {/* Subtle Status Bar */}
+            {/* Subtle Status Bar */}
             <div className="game-status-bar">
-                {isMyTurn && !isProcessing ? (
-                    <span className="your-turn-msg">Your Turn</span>
-                ) : (
-                    <span className="waiting-msg">
-                        {isProcessing ? 'Thinking...' : `${currentPlayer.name}'s turn`}
+                {isSpectator ? (
+                    <span className="spectator-msg">
+                        👁 Spectating - {isProcessing ? 'Thinking...' : `${currentPlayer.name}'s turn`}
                     </span>
+                ) : (
+                    isMyTurn && !isProcessing ? (
+                        <span className="your-turn-msg">Your Turn</span>
+                    ) : (
+                        <span className="waiting-msg">
+                            {isProcessing ? 'Thinking...' : `${currentPlayer.name}'s turn`}
+                        </span>
+                    )
                 )}
             </div>
         </div>

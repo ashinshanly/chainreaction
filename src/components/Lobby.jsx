@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { PLAYER_COLORS } from '../utils/gameLogic';
 import { LobbyBackground } from './LobbyBackground';
 import './Lobby.css';
@@ -13,12 +13,50 @@ export function Lobby({
     onLeave,
     onStart,
     onSetMaxPlayers,
+    onReset,
     connectionError
 }) {
     const [nameInput, setNameInput] = useState('');
     const [isJoining, setIsJoining] = useState(false);
     const [error, setError] = useState('');
     const [showRules, setShowRules] = useState(false);
+    const [timeLeft, setTimeLeft] = useState(null);
+
+    // Lobby Timeout Logic (5 Minutes)
+    useEffect(() => {
+        if (!gameState?.hostJoinedAt) {
+            setTimeLeft(null);
+            return;
+        }
+
+        const TIMEOUT_MS = 5 * 60 * 1000; // 5 Minutes
+
+        const updateTimer = () => {
+            const elapsed = Date.now() - gameState.hostJoinedAt;
+            const remaining = TIMEOUT_MS - elapsed;
+
+            if (remaining <= 0) {
+                if (gameState.hostJoinedAt && onReset) {
+                    onReset();
+                }
+            } else {
+                setTimeLeft(remaining);
+            }
+        };
+
+        const interval = setInterval(updateTimer, 1000);
+        updateTimer();
+
+        return () => clearInterval(interval);
+    }, [gameState?.hostJoinedAt, onReset]);
+
+    const formatTime = (ms) => {
+        if (ms === null || ms < 0) return '';
+        const totalSeconds = Math.floor(ms / 1000);
+        const mins = Math.floor(totalSeconds / 60);
+        const secs = totalSeconds % 60;
+        return `${mins}:${secs.toString().padStart(2, '0')}`;
+    };
 
     const maxPlayers = gameState?.maxPlayers || 4;
     const players = gameState?.players || [];
@@ -72,7 +110,7 @@ export function Lobby({
 
     const copyInviteLink = () => {
         navigator.clipboard.writeText(window.location.href);
-        alert('Link copied to clipboard!'); // Could replace with a toast for better UX
+        alert('Link copied to clipboard!');
     };
 
     return (
@@ -88,6 +126,11 @@ export function Lobby({
                     </div>
                     <h1 className="lobby-title">Chain Reaction</h1>
                     <p className="lobby-subtitle">Multiplayer Strategy Game</p>
+                    {timeLeft !== null && (
+                        <div className="lobby-timer" style={{ color: timeLeft < 60000 ? '#ff6b6b' : 'var(--text-secondary)', fontSize: '0.85rem', marginTop: '8px', fontWeight: 500 }}>
+                            ⏱ Lobby resets in {formatTime(timeLeft)}
+                        </div>
+                    )}
                 </div>
 
                 {/* Main Content Area */}
