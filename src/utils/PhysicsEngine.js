@@ -124,8 +124,8 @@ export class PhysicsRenderer {
 
                 // Stretch along velocity (approximate)
                 if (p > 0.1 && p < 0.9) {
-                    atom.scaleX = 1.4; // Slightly longer for speed effect
-                    atom.scaleY = 0.6; // Thinner
+                    atom.scaleX = 1.2;
+                    atom.scaleY = 1.2; // Keep it rounder/larger for visibility
                 } else {
                     atom.scaleX = 1;
                     atom.scaleY = 1;
@@ -181,14 +181,26 @@ export class PhysicsRenderer {
             this.ctx.scale(atom.scaleX, atom.scaleY);
 
             this.ctx.beginPath();
-            this.ctx.arc(0, 0, 8, 0, Math.PI * 2);
-            this.ctx.fillStyle = atom.color;
+            const r = 10; // Slightly larger for visibility
+            this.ctx.arc(0, 0, r, 0, Math.PI * 2);
+
+            // 3D Sphere Look (Matching CSS)
+            // Gradient center offset to top-left (-30%, -30%)
+            const grad = this.ctx.createRadialGradient(
+                -r * 0.3, -r * 0.3, r * 0.1, // Inner light source
+                0, 0, r // Outer edge
+            );
+            grad.addColorStop(0, '#fff'); // Specular highlight
+            grad.addColorStop(0.4, atom.color); // Body color
+            grad.addColorStop(1, '#000'); // Shadow edge
+
+            this.ctx.fillStyle = grad;
             this.ctx.fill();
 
             // Core glow
-            this.ctx.shadowBlur = 10;
+            this.ctx.shadowBlur = 15;
             this.ctx.shadowColor = atom.color;
-            this.ctx.fill();
+            // this.ctx.fill(); // Avoid double fill with shadow, might look messy. Shadow on draw is enough.
 
             this.ctx.restore();
         });
