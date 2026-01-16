@@ -12,8 +12,11 @@
     flex-direction: column;
     background: radial-gradient(circle at top, rgba(30, 40, 70, 0.5) 0%, transparent 80%);
     padding: 20px;
+    padding-bottom: max(20px, env(safe-area-inset-bottom));
+    /* Safe area for mobile */
     box-sizing: border-box;
-    overflow: hidden;
+    overflow-y: auto;
+    /* Allow scroll if content is too tall */
     position: relative;
     font-family: 'Inter', sans-serif;
 }
@@ -235,7 +238,7 @@
         inset 0 0 60px rgba(255, 255, 255, 0.02);
 
     /* SCALE UP */
-    width: min(90vw, 85vh / (var(--grid-rows) / var(--grid-cols)), 600px);
+    width: min(90vw, 75vh / (var(--grid-rows) / var(--grid-cols)), 600px);
     height: auto;
     aspect-ratio: var(--grid-cols) / var(--grid-rows);
 }
