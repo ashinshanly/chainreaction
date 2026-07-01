@@ -1,210 +1,31 @@
-.win-screen-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0, 0, 0, 0.85);
-    backdrop-filter: blur(10px);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 1000;
-    animation: fadeIn 0.5s ease-out;
-}
+.win-screen-overlay { position: fixed; inset: 0; z-index: 1000; display: grid; place-items: center; padding: 20px; overflow: hidden; background: rgba(2,5,12,.82); backdrop-filter: blur(24px) saturate(120%); animation: winFade 400ms ease-out both; }
+.confetti-container { position: absolute; inset: 0; overflow: hidden; pointer-events: none; }
+.confetti { position: absolute; top: -14px; left: var(--x); width: 6px; height: 10px; border-radius: 2px; background: var(--color); box-shadow: 0 0 8px var(--color); opacity: 0; animation: confettiFall var(--duration) cubic-bezier(.2,.6,.3,1) var(--delay) forwards; }
 
-@keyframes fadeIn {
-    from {
-        opacity: 0;
-    }
+.win-card { width: min(100%, 430px); position: relative; overflow: hidden; padding: clamp(38px, 7vw, 58px); text-align: center; border: 1px solid color-mix(in srgb, var(--winner-color), transparent 58%); border-radius: 30px; background: linear-gradient(150deg, rgba(19,27,46,.91), rgba(6,10,21,.94)); box-shadow: 0 40px 110px rgba(0,0,0,.72), 0 0 80px color-mix(in srgb, var(--winner-glow), transparent 55%), inset 0 1px rgba(255,255,255,.08); animation: winCardIn 650ms 100ms cubic-bezier(.16,1,.3,1) both; }
+.win-card::before { content: ''; position: absolute; width: 280px; height: 280px; left: 50%; top: -180px; transform: translateX(-50%); border-radius: 50%; background: var(--winner-color); opacity: .16; filter: blur(70px); pointer-events: none; }
 
-    to {
-        opacity: 1;
-    }
-}
+.trophy-container { width: 94px; height: 94px; position: relative; display: grid; place-items: center; margin: 0 auto 26px; color: var(--winner-color); }
+.victory-rings, .victory-rings i { position: absolute; inset: 0; border: 1px solid color-mix(in srgb, var(--winner-color), transparent 62%); border-radius: 50%; }
+.victory-rings { animation: ringRotate 9s linear infinite; }
+.victory-rings i:nth-child(1) { inset: 12px -5px; }
+.victory-rings i:nth-child(2) { inset: -5px 12px; }
+.victory-rings i:nth-child(3) { inset: 25px; background: color-mix(in srgb, var(--winner-color), transparent 87%); box-shadow: 0 0 28px var(--winner-glow); }
+.trophy { position: relative; z-index: 1; filter: drop-shadow(0 0 12px var(--winner-glow)); animation: trophyFloat 2.4s ease-in-out infinite; }
+.victory-kicker { display: block; margin-bottom: 7px; color: var(--winner-color); font-size: .6rem; font-weight: 800; letter-spacing: .17em; text-transform: uppercase; }
+.winner-title { margin: 0 0 24px; color: #fff; font: 750 clamp(2.8rem, 10vw, 4rem)/1 'Outfit', sans-serif; letter-spacing: -.065em; }
+.winner-name-container { display: flex; align-items: center; justify-content: center; gap: 10px; margin-bottom: 8px; }
+.winner-atom { width: 7px; height: 7px; border-radius: 50%; background: var(--winner-color); box-shadow: 0 0 12px var(--winner-glow); }
+.winner-name { margin: 0; color: var(--winner-color); font: 700 1.3rem 'Outfit', sans-serif; }
+.winner-message { margin: 0 auto 30px; color: rgba(255,255,255,.46); font-size: .75rem; }
+.play-again-button { width: 100%; min-height: 52px; display: flex; align-items: center; justify-content: center; gap: 10px; border: 0; border-radius: 14px; color: #07101b; background: linear-gradient(135deg, color-mix(in srgb, var(--winner-color), white 30%), var(--winner-color)); box-shadow: 0 14px 30px color-mix(in srgb, var(--winner-glow), transparent 42%); font: 750 .78rem 'Inter', sans-serif; cursor: pointer; transition: transform 180ms ease, filter 180ms ease; }
+.play-again-button:hover { transform: translateY(-2px); filter: brightness(1.08); }
+.play-again-button:active { transform: scale(.98); }
 
-.confetti-container {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    overflow: hidden;
-    pointer-events: none;
-}
+@keyframes winFade { from { opacity: 0; } }
+@keyframes winCardIn { from { opacity: 0; transform: translateY(20px) scale(.95); } }
+@keyframes confettiFall { 0% { transform: translateY(-20px) rotate(0); opacity: 1; } 100% { transform: translateY(105vh) rotate(760deg); opacity: 0; } }
+@keyframes ringRotate { to { transform: rotate(360deg); } }
+@keyframes trophyFloat { 50% { transform: translateY(-5px); } }
 
-.confetti {
-    position: absolute;
-    top: -10px;
-    left: var(--x);
-    width: 10px;
-    height: 10px;
-    background: var(--color);
-    animation: fall var(--duration) ease-out var(--delay) forwards;
-    opacity: 0;
-}
-
-@keyframes fall {
-    0% {
-        transform: translateY(0) rotateZ(0deg);
-        opacity: 1;
-    }
-
-    100% {
-        transform: translateY(100vh) rotateZ(720deg);
-        opacity: 0;
-    }
-}
-
-.win-card {
-    background: rgba(20, 20, 35, 0.7);
-    backdrop-filter: blur(32px);
-    -webkit-backdrop-filter: blur(32px);
-    border-radius: 32px;
-    border: 2px solid var(--winner-color);
-    box-shadow:
-        0 0 100px var(--winner-glow),
-        0 40px 100px rgba(0, 0, 0, 0.8),
-        inset 0 0 0 1px rgba(255, 255, 255, 0.1);
-    padding: 64px;
-    text-align: center;
-    animation: scaleIn 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) 0.2s both;
-    max-width: 480px;
-    width: 90%;
-    position: relative;
-    overflow: hidden;
-}
-
-.win-card::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: radial-gradient(circle at center, var(--winner-glow), transparent 70%);
-    opacity: 0.2;
-    pointer-events: none;
-}
-
-@keyframes scaleIn {
-    from {
-        transform: scale(0.8);
-        opacity: 0;
-    }
-
-    to {
-        transform: scale(1);
-        opacity: 1;
-    }
-}
-
-.trophy-container {
-    margin-bottom: 16px;
-}
-
-.trophy {
-    font-size: 5rem;
-    animation: bounce 1s ease-in-out infinite;
-}
-
-@keyframes bounce {
-
-    0%,
-    100% {
-        transform: translateY(0);
-    }
-
-    50% {
-        transform: translateY(-10px);
-    }
-}
-
-.winner-title {
-    font-family: 'Outfit', sans-serif;
-    font-size: 4rem;
-    font-weight: 800;
-    background: linear-gradient(135deg, #fff, var(--winner-color));
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-    margin: 0 0 24px;
-    letter-spacing: -2px;
-    text-shadow: 0 10px 30px var(--winner-glow);
-    filter: drop-shadow(0 0 10px var(--winner-glow));
-}
-
-.winner-name-container {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 16px;
-    margin-bottom: 12px;
-}
-
-.winner-atom {
-    width: 20px;
-    height: 20px;
-    border-radius: 50%;
-    background: var(--winner-color);
-    box-shadow: 0 0 20px var(--winner-glow);
-    animation: atomPulse 1s ease-in-out infinite;
-}
-
-@keyframes atomPulse {
-
-    0%,
-    100% {
-        transform: scale(1);
-    }
-
-    50% {
-        transform: scale(1.2);
-    }
-}
-
-.winner-name {
-    font-size: 2rem;
-    font-weight: 700;
-    color: var(--winner-color);
-    margin: 0;
-    text-shadow: 0 0 20px var(--winner-glow);
-}
-
-.winner-message {
-    color: rgba(255, 255, 255, 0.7);
-    font-size: 1.1rem;
-    margin: 0 0 32px;
-}
-
-.play-again-button {
-    padding: 16px 48px;
-    background: linear-gradient(135deg, var(--winner-color), color-mix(in srgb, var(--winner-color), black 30%));
-    border: none;
-    border-radius: 12px;
-    color: #1a1a2e;
-    font-size: 1.2rem;
-    font-weight: 700;
-    cursor: pointer;
-    transition: all 0.3s ease;
-}
-
-.play-again-button:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 10px 30px var(--winner-glow);
-}
-
-@media (max-width: 480px) {
-    .win-card {
-        padding: 32px 24px;
-    }
-
-    .trophy {
-        font-size: 4rem;
-    }
-
-    .winner-title {
-        font-size: 2.5rem;
-    }
-
-    .winner-name {
-        font-size: 1.5rem;
-    }
-}
+@media (prefers-reduced-motion: reduce) { .victory-rings, .trophy, .confetti { animation: none; } }

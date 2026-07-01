@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { useGameState } from './hooks/useGameState';
 import { Lobby } from './components/Lobby';
 import { GameBoard } from './components/GameBoard';
@@ -6,12 +6,18 @@ import { WinScreen } from './components/WinScreen';
 import './App.css';
 
 function App() {
+  const ambientParticles = useMemo(() => Array.from({ length: 18 }, (_, index) => ({
+    id: index,
+    x: `${(index * 37 + 11) % 100}%`,
+    y: `${(index * 61 + 7) % 100}%`,
+    size: `${2 + (index % 4)}px`,
+    duration: `${14 + (index % 7) * 2}s`,
+    delay: `${-(index % 9) * 1.7}s`
+  })), []);
+
   const {
     gameState,
     playerId,
-    playerName,
-    myPlayer,
-    currentPlayer,
     isMyTurn,
     isHost,
     isInGame,
@@ -37,19 +43,12 @@ function App() {
         </div>
         <p>{connectionError ? `Connection error: ${connectionError}` : 'Connecting to game server...'}</p>
         {connectionError && (
-          <button
-            onClick={() => window.location.reload()}
-            style={{
-              marginTop: '20px',
-              padding: '10px 20px',
-              background: 'rgba(68, 136, 255, 0.3)',
-              border: '1px solid rgba(68, 136, 255, 0.5)',
-              borderRadius: '8px',
-              color: 'white',
-              cursor: 'pointer'
-            }}
-          >
-            Retry Connection
+            <button
+              type="button"
+              className="retry-button"
+              onClick={() => window.location.reload()}
+            >
+              Retry Connection
           </button>
         )}
       </div>
@@ -60,17 +59,18 @@ function App() {
     <div className="app">
       <div className="background-effects">
         <div className="bg-gradient"></div>
+        <div className="bg-grid"></div>
         <div className="bg-particles">
-          {Array(20).fill(null).map((_, i) => (
+          {ambientParticles.map((particle) => (
             <div
-              key={i}
+              key={particle.id}
               className="particle"
               style={{
-                '--x': `${Math.random() * 100}%`,
-                '--y': `${Math.random() * 100}%`,
-                '--size': `${2 + Math.random() * 4}px`,
-                '--duration': `${10 + Math.random() * 20}s`,
-                '--delay': `${Math.random() * 10}s`
+                '--x': particle.x,
+                '--y': particle.y,
+                '--size': particle.size,
+                '--duration': particle.duration,
+                '--delay': particle.delay
               }}
             />
           ))}
@@ -82,7 +82,6 @@ function App() {
           <Lobby
             gameState={gameState}
             playerId={playerId}
-            playerName={playerName}
             isHost={isHost}
             isInGame={isInGame}
             onJoin={joinGame}

@@ -2,9 +2,6 @@ import gsap from 'gsap';
 
 // Constants for physics visual tuning
 const SPARK_COUNT = 5;
-const PARTICLES_GRAVITY = 0.5;
-const SQUASH_FACTOR = 0.3; // How much it narrows during flight
-
 export class PhysicsRenderer {
     constructor(canvas, rows, cols) {
         this.canvas = canvas;
@@ -30,11 +27,12 @@ export class PhysicsRenderer {
         this.tick = this.tick.bind(this);
     }
 
-    resize(width, height) {
+    resize(width, height, dpr = 1) {
         this.width = width;
         this.height = height;
-        this.canvas.width = width;
-        this.canvas.height = height;
+        this.canvas.width = Math.round(width * dpr);
+        this.canvas.height = Math.round(height * dpr);
+        this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
         this.cellWidth = width / this.cols;
         this.cellHeight = height / this.rows;
     }
@@ -90,12 +88,6 @@ export class PhysicsRenderer {
         };
 
         // Total animation duration
-        const duration = 0.5; // Seconds
-
-        // 1. Anticipation (Back.easeIn equivalent done manually or via timeline)
-        // 2. Flight
-        // 3. Impact (Elastic.easeOut)
-
         const tl = gsap.timeline({
             delay: delay,
             onComplete: () => {
@@ -107,15 +99,15 @@ export class PhysicsRenderer {
 
         // Instant Launch & Arc (No anticipation)
         tl.to(atom, {
-            duration: 0.35, // Faster flight (was 0.5 total)
-            ease: "power2.inOut",
+            duration: 0.32,
+            ease: "power2.out",
             x: endPos.x,
             y: endPos.y,
             onUpdate: function () {
                 const p = this.progress();
                 // Arc logic: Parabolic Z height
                 // Max height at middle of flight (Reduced height for tighter feel)
-                atom.z = Math.sin(p * Math.PI) * 30;
+                atom.z = Math.sin(p * Math.PI) * 22;
 
                 // Squash and stretch based on velocity
                 const dx = endPos.x - startPos.x;
@@ -124,8 +116,8 @@ export class PhysicsRenderer {
 
                 // Stretch along velocity (approximate)
                 if (p > 0.1 && p < 0.9) {
-                    atom.scaleX = 1.2;
-                    atom.scaleY = 1.2; // Keep it rounder/larger for visibility
+                    atom.scaleX = 1.3;
+                    atom.scaleY = 0.92;
                 } else {
                     atom.scaleX = 1;
                     atom.scaleY = 1;

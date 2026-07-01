@@ -4,10 +4,10 @@ export const GRID_COLS = 6;
 
 // Player colors with neon glow
 export const PLAYER_COLORS = [
-    { primary: '#ff4444', glow: 'rgba(255, 68, 68, 0.6)', name: 'Red' },
-    { primary: '#44ff44', glow: 'rgba(68, 255, 68, 0.6)', name: 'Green' },
-    { primary: '#4488ff', glow: 'rgba(68, 136, 255, 0.6)', name: 'Blue' },
-    { primary: '#ff8844', glow: 'rgba(255, 136, 68, 0.6)', name: 'Orange' }
+    { primary: '#ff5f72', glow: 'rgba(255, 95, 114, 0.62)', name: 'Coral' },
+    { primary: '#59e6a7', glow: 'rgba(89, 230, 167, 0.58)', name: 'Mint' },
+    { primary: '#6698ff', glow: 'rgba(102, 152, 255, 0.62)', name: 'Blue' },
+    { primary: '#ffb45f', glow: 'rgba(255, 180, 95, 0.58)', name: 'Amber' }
 ];
 
 /**

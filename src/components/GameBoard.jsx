@@ -16,141 +16,138 @@ export function GameBoard({
     isSpectator,
 }) {
     const { grid, players, turnIndex } = gameState;
-    const currentPlayer = players[turnIndex];
-
-    // Create a map of player ID to color index
-    const playerColorMap = {};
-    players.forEach(player => {
-        playerColorMap[player.id] = player.colorIndex;
-    });
-
-    // Enhance grid with color information
-    const enhancedGrid = grid.map(row =>
-        row.map(cell => ({
-            ...cell,
-            colorIndex: cell.owner ? playerColorMap[cell.owner] : null
-        }))
-    );
-
+    const currentPlayer = players[turnIndex] || players[0];
     const [showResetConfirm, setShowResetConfirm] = React.useState(false);
 
-    const isExploding = (row, col) => {
-        return explodingCells.some(c => c.row === row && c.col === col);
-    };
+    const playerColorMap = Object.fromEntries(players.map(player => [player.id, player.colorIndex]));
+    const enhancedGrid = grid.map(row => row.map(cell => ({
+        ...cell,
+        colorIndex: cell.owner ? playerColorMap[cell.owner] : null
+    })));
 
+    const currentColor = PLAYER_COLORS[currentPlayer?.colorIndex ?? turnIndex] || PLAYER_COLORS[0];
+    const movesMade = gameState.movesMade || 0;
+    const round = Math.floor(movesMade / Math.max(players.length, 1)) + 1;
+    const boardLocked = isProcessing || explodingCells.length > 0;
+    const atomTotals = players.reduce((totals, player) => {
+        totals[player.id] = grid.flat().reduce(
+            (sum, cell) => sum + (cell.owner === player.id ? cell.count : 0),
+            0
+        );
+        return totals;
+    }, {});
+
+    const isExploding = (row, col) => explodingCells.some(cell => cell.row === row && cell.col === col);
     const canPlaceAt = (row, col) => {
         const cell = grid[row][col];
         return cell.owner === null || cell.owner === playerId;
     };
 
+    const statusLabel = isSpectator
+        ? `Spectating ${currentPlayer?.name || 'the game'}`
+        : boardLocked
+            ? 'Reaction in progress'
+            : isMyTurn
+                ? 'Your move'
+                : `${currentPlayer?.name || 'Opponent'} is playing`;
+
     return (
-        <div className="game-board-container">
-            {/* Top HUD: Minimalist & Sleek */}
-            <div className="game-hud">
-                <div className="hud-players">
-                    {players.map((player, index) => {
-                        // Check if eliminated (only after game has really started)
-                        const movesMade = gameState.movesMade || 0;
+        <main
+            className={`game-board-container ${isMyTurn && !boardLocked ? 'is-my-turn' : ''}`}
+            style={{ '--turn-color': currentColor.primary, '--turn-glow': currentColor.glow }}
+        >
+            <header className="game-hud">
+                <div className="hud-brand" aria-label="Chain Reaction">
+                    <span className="hud-brand-mark"><i /><i /><i /></span>
+                    <span>Chain <strong>Reaction</strong></span>
+                </div>
+
+                <div className="round-pill">
+                    <span>Round</span>
+                    <strong>{round.toString().padStart(2, '0')}</strong>
+                </div>
+
+                <div className="hud-controls">
+                    {showResetConfirm ? (
+                        <div className="reset-confirm" role="group" aria-label="Confirm game reset">
+                            <span>End match?</span>
+                            <button type="button" className="confirm-btn yes" onClick={() => {
+                                onEndGame();
+                                setShowResetConfirm(false);
+                            }}>End</button>
+                            <button type="button" className="confirm-btn no" onClick={() => setShowResetConfirm(false)}>Keep</button>
+                        </div>
+                    ) : (
+                        <button type="button" className="hud-end-btn" onClick={() => setShowResetConfirm(true)} aria-label="End match">
+                            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <path d="M4 12v6a2 2 0 002 2h12a2 2 0 002-2v-6M10 2h4M12 2v10" strokeLinecap="round" strokeLinejoin="round" />
+                            </svg>
+                            <span>End</span>
+                        </button>
+                    )}
+                </div>
+            </header>
+
+            <section className="turn-banner" aria-live="polite">
+                <div className="turn-copy">
+                    <span className="turn-kicker">{isSpectator ? 'Live match' : boardLocked ? 'Chain reaction' : 'Current turn'}</span>
+                    <div className="turn-title-row">
+                        <span className={`turn-orb ${boardLocked ? 'processing' : ''}`} />
+                        <h1>{statusLabel}</h1>
+                    </div>
+                </div>
+                <p>{isMyTurn && !boardLocked ? 'Choose an empty cell or reinforce your color.' : boardLocked ? 'Watch the energy travel across the board.' : 'Your cells are safe until your next move.'}</p>
+            </section>
+
+            <section className="game-stage">
+                <div className="hud-players" aria-label="Players">
+                    {players.map((player) => {
+                        const color = PLAYER_COLORS[player.colorIndex] || PLAYER_COLORS[0];
                         const isEliminated = movesMade >= players.length && isPlayerEliminated(grid, player.id);
+                        const isActive = player.id === currentPlayer?.id;
 
                         return (
                             <div
                                 key={player.id}
-                                className={`hud-player ${player.id === currentPlayer.id ? 'active' : ''} ${isEliminated ? 'eliminated' : ''}`}
-                                style={{
-                                    '--p-color': PLAYER_COLORS[index].primary,
-                                    '--p-glow': PLAYER_COLORS[index].glow
-                                }}
+                                className={`hud-player ${isActive ? 'active' : ''} ${isEliminated ? 'eliminated' : ''}`}
+                                style={{ '--p-color': color.primary, '--p-glow': color.glow }}
                             >
-                                <div className="hud-orb"></div>
-                                <span className="hud-name">
-                                    {player.name}
-                                    {isEliminated && <small> (Out)</small>}
-                                    {player.id === playerId && <small> (You)</small>}
+                                <span className="hud-orb" />
+                                <span className="hud-player-copy">
+                                    <span className="hud-name">{player.id === playerId ? 'You' : player.name}</span>
+                                    <small>{isEliminated ? 'Eliminated' : `${atomTotals[player.id]} atoms`}</small>
                                 </span>
+                                {isActive && !isEliminated && <span className="active-label">Playing</span>}
                             </div>
                         );
                     })}
                 </div>
 
-                <div className="hud-controls">
-                    {showResetConfirm ? (
-                        <div className="reset-confirm">
-                            <span>End Game?</span>
-                            <button
-                                className="confirm-btn yes"
-                                onClick={() => {
-                                    onEndGame();
-                                    setShowResetConfirm(false);
-                                }}
-                            >
-                                ✓
-                            </button>
-                            <button
-                                className="confirm-btn no"
-                                onClick={() => setShowResetConfirm(false)}
-                            >
-                                ✕
-                            </button>
-                        </div>
-                    ) : (
-                        <button
-                            className="hud-end-btn"
-                            onClick={() => setShowResetConfirm(true)}
-                            title="End Game"
-                        >
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                                <path d="M4 12v6a2 2 0 002 2h12a2 2 0 002-2v-6M10 2h4M12 2v10" strokeLinecap="round" strokeLinejoin="round" />
-                            </svg>
-                            <span className="btn-label">Reset</span>
-                        </button>
-                    )}
-                </div>
-            </div>
-
-            <div className="game-grid-wrapper">
-                <div
-                    className="game-grid"
-                    style={{
-                        '--grid-cols': GRID_COLS,
-                        '--grid-rows': GRID_ROWS
-                    }}
-                >
-                    {enhancedGrid.map((row, rowIndex) => (
-                        row.map((cell, colIndex) => (
+                <div className="game-grid-wrapper">
+                    <div className="board-aura" aria-hidden="true" />
+                    <div className="game-grid" style={{ '--grid-cols': GRID_COLS, '--grid-rows': GRID_ROWS }}>
+                        {enhancedGrid.flatMap((row, rowIndex) => row.map((cell, colIndex) => (
                             <Cell
                                 key={`${rowIndex}-${colIndex}`}
                                 row={rowIndex}
                                 col={colIndex}
                                 cell={cell}
                                 isExploding={isExploding(rowIndex, colIndex)}
-                                isMyTurn={isMyTurn && !isProcessing}
+                                isMyTurn={isMyTurn && !boardLocked && !isSpectator}
                                 canPlace={canPlaceAt(rowIndex, colIndex)}
                                 onClick={onCellClick}
                             />
-                        ))
-                    ))}
-                    <FlyingAtoms atoms={flyingAtoms} />
+                        )))}
+                        <FlyingAtoms atoms={flyingAtoms} />
+                    </div>
                 </div>
-            </div>
+            </section>
 
-            {/* Subtle Status Bar */}
-            {/* Subtle Status Bar */}
-            <div className="game-status-bar">
-                {isSpectator ? (
-                    <span className="spectator-msg">
-                        👁 Spectating - {isProcessing ? 'Thinking...' : `${currentPlayer.name}'s turn`}
-                    </span>
-                ) : (
-                    isMyTurn && !isProcessing ? (
-                        <span className="your-turn-msg">Your Turn</span>
-                    ) : (
-                        <span className="waiting-msg">
-                            {isProcessing ? 'Thinking...' : `${currentPlayer.name}'s turn`}
-                        </span>
-                    )
-                )}
-            </div>
-        </div>
+            <footer className="game-status-bar">
+                <span className="status-dot" />
+                <span>{statusLabel}</span>
+                {!isSpectator && <kbd>Tap a cell</kbd>}
+            </footer>
+        </main>
     );
 }

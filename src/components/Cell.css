@@ -1,324 +1,148 @@
 .cell {
+    appearance: none;
+    width: 100%;
+    min-width: 0;
     aspect-ratio: 1;
-    background: rgba(255, 255, 255, 0.06);
-    border: 2px solid rgba(255, 255, 255, 0.2);
-    border-radius: 12px;
+    padding: 0;
     position: relative;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    cursor: default;
     overflow: hidden;
-    box-shadow: inset 0 0 15px rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.075);
+    border-radius: clamp(7px, 1.2vw, 11px);
+    background: rgba(255, 255, 255, 0.025);
+    box-shadow: inset 0 1px rgba(255, 255, 255, 0.035);
+    color: white;
+    cursor: default;
+    transition: transform 170ms cubic-bezier(.2, .8, .2, 1), background 170ms ease, border-color 170ms ease, box-shadow 170ms ease;
+    -webkit-tap-highlight-color: transparent;
 }
 
-.cell::after {
+.cell::before {
     content: '';
     position: absolute;
     inset: 0;
-    background: radial-gradient(circle at center, rgba(255, 255, 255, 0.05), transparent 70%);
+    background: radial-gradient(circle at 50% 45%, var(--cell-glow), transparent 67%);
     opacity: 0;
-    transition: opacity 0.3s ease;
+    transition: opacity 220ms ease;
 }
+
+.cell[data-owned='true']::before { opacity: .22; }
+.cell:disabled { opacity: 1; }
 
 .cell.clickable {
     cursor: pointer;
+    border-color: rgba(255, 255, 255, 0.095);
 }
 
 .cell.clickable:hover {
-    background: rgba(255, 255, 255, 0.12);
-    border-color: rgba(255, 255, 255, 0.4);
-    transform: scale(1.02);
     z-index: 2;
-    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
+    transform: translateY(-2px) scale(1.025);
+    background: rgba(255, 255, 255, 0.075);
+    border-color: color-mix(in srgb, var(--turn-color, white), transparent 55%);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, .28), inset 0 1px rgba(255,255,255,.09);
 }
 
-.cell.clickable:hover::after {
-    opacity: 1;
-}
+.cell.clickable:hover::before { opacity: .5; }
+.cell.clickable:active { transform: scale(.94); transition-duration: 70ms; }
+.cell:focus-visible { z-index: 3; outline: 2px solid var(--turn-color, white); outline-offset: 2px; }
 
-/* Critical state: No cell vibration, just border highlight */
 .cell.critical {
-    border-color: rgba(255, 255, 255, 0.5);
+    border-color: color-mix(in srgb, var(--cell-color), transparent 44%);
+    box-shadow: inset 0 0 18px color-mix(in srgb, var(--cell-glow), transparent 35%), 0 0 12px color-mix(in srgb, var(--cell-glow), transparent 55%);
 }
 
-.cell.exploding {
-    animation: explode 0.3s cubic-bezier(0.1, 0.9, 0.2, 1);
-    z-index: 10;
-}
+.cell.critical::before { opacity: .45; animation: criticalGlow 900ms ease-in-out infinite alternate; }
+.cell.receiving { animation: receive 360ms cubic-bezier(.2, .9, .25, 1.25); }
+.cell.exploding { z-index: 10; animation: explode 340ms cubic-bezier(.1, .85, .2, 1); }
 
-@keyframes explode {
-    0% {
-        background: rgba(255, 255, 255, 0.8);
-        transform: scale(1);
-        box-shadow: 0 0 30px rgba(255, 255, 255, 0.8);
-    }
+.cell-inner,
+.atoms-container { width: 100%; height: 100%; position: relative; display: grid; place-items: center; }
 
-    40% {
-        background: rgba(255, 255, 255, 0.9);
-        transform: scale(1.15);
-        box-shadow: 0 0 50px rgba(255, 255, 255, 1);
-    }
-
-    100% {
-        background: rgba(255, 255, 255, 0.05);
-        transform: scale(1);
-        box-shadow: none;
-    }
-}
-
-.cell.receiving {
-    animation: receive 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
-}
-
-@keyframes receive {
-    0% {
-        transform: scale(1);
-    }
-
-    30% {
-        transform: scale(1.15);
-        background: rgba(255, 255, 255, 0.2);
-    }
-
-    50% {
-        transform: scale(0.95);
-    }
-
-    70% {
-        transform: scale(1.05);
-    }
-
-    100% {
-        transform: scale(1);
-    }
-}
-
-.cell-inner {
-    width: 100%;
-    height: 100%;
-    position: relative;
-    display: grid;
-    place-items: center;
-}
-
-.atoms-container {
-    position: relative;
-    width: 100%;
-    height: 100%;
+.charge-meter {
+    position: absolute;
+    left: 50%;
+    bottom: 8%;
+    transform: translateX(-50%);
     display: flex;
-    align-items: center;
-    justify-content: center;
+    gap: 2px;
+    opacity: .38;
 }
 
-/* Cluster Rotation */
-/* We only rotate if count >= 2 to mimic electron orbits */
-.atoms-container[data-atom-count="2"],
-.atoms-container[data-atom-count="3"],
-.atoms-container[data-atom-count="4"] {
-    animation: clusterOrbit 4s linear infinite;
+.charge-meter span {
+    width: clamp(2px, .45vw, 4px);
+    height: 2px;
+    border-radius: 2px;
+    background: rgba(255, 255, 255, .2);
 }
 
-/* For critical mass, maybe spin faster? */
-.cell.critical .atoms-container {
-    animation-duration: 1s;
-    /* DANGER SPEED */
-}
+.charge-meter span.filled { background: var(--cell-color); box-shadow: 0 0 5px var(--cell-glow); }
+.cell:not([data-owned='true']) .charge-meter { opacity: .12; }
 
-@keyframes clusterOrbit {
-    from {
-        transform: rotate(0deg);
-    }
-
-    to {
-        transform: rotate(360deg);
-    }
-}
-
-/* 
-   WRAPPER: Handles Position on the grid 
-   Uses --x and --y to translate from center
-*/
 .atom-group {
     position: absolute;
-    width: 36%;
-    height: 36%;
-    min-width: 14px;
-    min-height: 14px;
-    max-width: 32px;
-    max-height: 32px;
-    z-index: 5;
-    left: 50%;
-    top: 50%;
-    margin-left: -18%;
-    margin-top: -18%;
-
+    width: 31%;
+    aspect-ratio: 1;
+    max-width: 27px;
     transform: translate(var(--x, 0), var(--y, 0));
     pointer-events: none;
+    will-change: transform;
 }
 
-/* 
-   ATOM: Handles Visuals + Counter-Rotation (to keep light source fixed)
-*/
 .atom {
     width: 100%;
     height: 100%;
     border-radius: 50%;
-
-    /* OPAQUE & GLOWY LOOK */
-    background: radial-gradient(circle at 30% 30%,
-            color-mix(in srgb, var(--atom-color), white 60%) 0%,
-            var(--atom-color) 60%);
-
-    /* Strong Neon Glow */
-    box-shadow:
-        0 0 12px 2px var(--atom-glow),
-        inset -2px -2px 4px rgba(0, 0, 0, 0.2);
-
-    /* Float animation only. No rotation. */
-    animation: atomFloat 2s ease-in-out infinite, atomPop 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    background: radial-gradient(circle at 29% 26%, #fff 0 7%, color-mix(in srgb, var(--atom-color), white 42%) 18%, var(--atom-color) 63%, color-mix(in srgb, var(--atom-color), black 18%) 100%);
+    box-shadow: 0 0 10px var(--atom-glow), 0 0 20px color-mix(in srgb, var(--atom-glow), transparent 35%), inset -2px -3px 5px rgba(0,0,0,.25);
+    animation: atomFloat 2.2s ease-in-out infinite, atomPop 420ms cubic-bezier(.2, .9, .25, 1.3) both;
     animation-delay: var(--atom-delay, 0s);
+    will-change: transform;
 }
 
-/* 
-   If the container orbits, the atoms inside will rotate with it.
-   This rotates the highlight. To fix this, we counter-rotate the atoms.
-*/
-.atoms-container[data-atom-count="2"] .atom,
-.atoms-container[data-atom-count="3"] .atom,
-.atoms-container[data-atom-count="4"] .atom {
-    animation:
-        atomFloat 2s ease-in-out infinite,
-        atomCounterOrbit 4s linear infinite,
-        /* Must match clusterOrbit duration */
-        atomPop 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+.atoms-container[data-atom-count='2'],
+.atoms-container[data-atom-count='3'],
+.atoms-container[data-atom-count='4'] { animation: clusterOrbit 5.5s linear infinite; }
+
+.atoms-container[data-atom-count='2'] .atom,
+.atoms-container[data-atom-count='3'] .atom,
+.atoms-container[data-atom-count='4'] .atom { animation: atomCounterOrbit 5.5s linear infinite, atomFloat 2.2s ease-in-out infinite, atomPop 420ms cubic-bezier(.2,.9,.25,1.3) both; }
+
+.cell.critical .atoms-container { animation-duration: 1.4s; }
+.cell.critical .atoms-container[data-atom-count] .atom { animation: atomCounterOrbit 1.4s linear infinite, atomPump 650ms ease-in-out infinite alternate; }
+
+.atom-1-0 { --x: 0; --y: 0; }
+.atom-2-0 { --x: -38%; --y: 0; }
+.atom-2-1 { --x: 38%; --y: 0; }
+.atom-3-0 { --x: 0; --y: -42%; }
+.atom-3-1 { --x: -38%; --y: 32%; }
+.atom-3-2 { --x: 38%; --y: 32%; }
+.atom-4-0 { --x: -36%; --y: -36%; }
+.atom-4-1 { --x: 36%; --y: -36%; }
+.atom-4-2 { --x: -36%; --y: 36%; }
+.atom-4-3 { --x: 36%; --y: 36%; }
+
+@keyframes clusterOrbit { to { transform: rotate(360deg); } }
+@keyframes atomCounterOrbit { to { transform: rotate(-360deg); } }
+@keyframes atomFloat { 50% { translate: 0 -2px; } }
+@keyframes atomPop { from { scale: .2; opacity: 0; } }
+@keyframes atomPump { to { scale: 1.16; filter: brightness(1.2); } }
+@keyframes criticalGlow { to { opacity: .7; } }
+@keyframes receive {
+    0%, 100% { transform: scale(1); }
+    38% { transform: scale(1.1); background: color-mix(in srgb, var(--cell-color), transparent 82%); }
+    65% { transform: scale(.97); }
+}
+@keyframes explode {
+    0% { transform: scale(1); filter: brightness(1); }
+    42% { transform: scale(1.14); background: rgba(255,255,255,.82); filter: brightness(1.7); box-shadow: 0 0 35px var(--cell-glow); }
+    100% { transform: scale(.96); filter: brightness(1); }
 }
 
-.cell.critical .atoms-container[data-atom-count] .atom {
-    animation-duration: 2s, 1s, 0.5s;
-    /* Speed up counter-orbit to match cluster-orbit */
+@media (hover: none) {
+    .cell.clickable:hover { transform: none; background: rgba(255,255,255,.025); border-color: rgba(255,255,255,.095); box-shadow: inset 0 1px rgba(255,255,255,.035); }
+    .cell.clickable:active { transform: scale(.93); background: rgba(255,255,255,.09); }
 }
 
-@keyframes atomCounterOrbit {
-    from {
-        transform: rotate(0deg);
-    }
-
-    to {
-        transform: rotate(-360deg);
-    }
-}
-
-
-/* Critical State: Stop orbit, start pumping */
-.cell.critical .atoms-container {
-    animation: none;
-    /* Stop the cluster rotation */
-}
-
-/* Stop the group jitter I added before */
-.cell.critical .atom-group {
-    animation: none;
-}
-
-/* The Atoms themselves: Stop counter-orbit, Stop float. Start PUMPING. */
-/* Override specific count selectors */
-.cell.critical .atoms-container[data-atom-count] .atom,
-.cell.critical .atom {
-    animation: atomPump 0.8s ease-in-out infinite alternate;
-}
-
-@keyframes atomPump {
-    0% {
-        transform: scale(0.95);
-    }
-
-    100% {
-        transform: scale(1.15);
-    }
-}
-
-@keyframes atomCritical {
-
-    /* Deprecated but kept to avoid breakage if ref'd elsewhere */
-    0% {
-        transform: translate(var(--x), var(--y));
-    }
-
-    100% {
-        transform: translate(var(--x), var(--y));
-    }
-}
-
-@keyframes atomFloat {
-
-    0%,
-    100% {
-        margin-top: 0;
-    }
-
-    50% {
-        margin-top: -4px;
-    }
-}
-
-@keyframes atomPop {
-    0% {
-        transform: scale(0);
-        opacity: 0;
-    }
-
-    100% {
-        transform: scale(1);
-        opacity: 1;
-    }
-}
-
-/* POSITIONS */
-.atom-1-0 {
-    --x: 0;
-    --y: 0;
-}
-
-.atom-2-0 {
-    --x: -22%;
-    --y: 0;
-}
-
-.atom-2-1 {
-    --x: 22%;
-    --y: 0;
-}
-
-.atom-3-0 {
-    --x: 0;
-    --y: -22%;
-}
-
-.atom-3-1 {
-    --x: -20%;
-    --y: 18%;
-}
-
-.atom-3-2 {
-    --x: 20%;
-    --y: 18%;
-}
-
-.atom-4-0 {
-    --x: -18%;
-    --y: -18%;
-}
-
-.atom-4-1 {
-    --x: 18%;
-    --y: -18%;
-}
-
-.atom-4-2 {
-    --x: -18%;
-    --y: 18%;
-}
-
-.atom-4-3 {
-    --x: 18%;
-    --y: 18%;
+@media (prefers-reduced-motion: reduce) {
+    .atom, .atoms-container, .cell.critical::before { animation: none !important; }
+    .cell { transition-duration: .01ms; }
 }

@@ -6,7 +6,6 @@ import './Lobby.css';
 export function Lobby({
     gameState,
     playerId,
-    playerName,
     isHost,
     isInGame,
     onJoin,
@@ -21,6 +20,7 @@ export function Lobby({
     const [error, setError] = useState('');
     const [showRules, setShowRules] = useState(false);
     const [timeLeft, setTimeLeft] = useState(null);
+    const [inviteCopied, setInviteCopied] = useState(false);
 
     // Lobby Timeout Logic (5 Minutes)
     useEffect(() => {
@@ -108,42 +108,51 @@ export function Lobby({
         }
     };
 
-    const copyInviteLink = () => {
-        navigator.clipboard.writeText(window.location.href);
-        alert('Link copied to clipboard!');
+    const copyInviteLink = async () => {
+        try {
+            await navigator.clipboard.writeText(window.location.href);
+            setInviteCopied(true);
+            window.setTimeout(() => setInviteCopied(false), 1800);
+        } catch {
+            setError('Could not copy the invite link. Copy it from the address bar.');
+        }
     };
 
     return (
         <div className="lobby-container">
             <LobbyBackground />
             <div className="lobby-card">
-                {/* Header */}
                 <div className="lobby-header">
                     <div className="logo-container">
-                        <div className="atom atom-1"></div>
-                        <div className="atom atom-2"></div>
-                        <div className="atom atom-3"></div>
+                        <div className="logo-core"></div>
+                        <div className="logo-orbit orbit-one"><i /></div>
+                        <div className="logo-orbit orbit-two"><i /></div>
                     </div>
-                    <h1 className="lobby-title">Chain Reaction</h1>
-                    <p className="lobby-subtitle">Multiplayer Strategy Game</p>
+                    <div className="lobby-eyebrow"><span /> Live multiplayer</div>
+                    <h1 className="lobby-title">Chain <span>Reaction</span></h1>
+                    <p className="lobby-subtitle">Build energy. Trigger chaos. Own the board.</p>
                     {timeLeft !== null && (
-                        <div className="lobby-timer" style={{ color: timeLeft < 60000 ? '#ff6b6b' : 'var(--text-secondary)', fontSize: '0.85rem', marginTop: '8px', fontWeight: 500 }}>
-                            ⏱ Lobby resets in {formatTime(timeLeft)}
+                        <div className={`lobby-timer ${timeLeft < 60000 ? 'urgent' : ''}`}>
+                            <span>Lobby closes in</span><strong>{formatTime(timeLeft)}</strong>
                         </div>
                     )}
                 </div>
 
-                {/* Main Content Area */}
                 {!isInGame ? (
-                    // JOIN VIEW
                     <div className="join-section">
+                        <div className="join-intro">
+                            <span>Enter the arena</span>
+                            <small>{joinedCount}/{maxPlayers} players connected</small>
+                        </div>
                         <div className="input-container">
+                            <label htmlFor="player-name">Nickname</label>
                             <input
+                                id="player-name"
                                 type="text"
-                                placeholder="Enter your nickname"
+                                placeholder="What should we call you?"
                                 value={nameInput}
                                 onChange={(e) => setNameInput(e.target.value)}
-                                onKeyPress={handleKeyPress}
+                                onKeyDown={handleKeyPress}
                                 maxLength={12}
                                 className="name-input"
                                 disabled={isJoining}
@@ -156,27 +165,33 @@ export function Lobby({
                         {connectionError && <div className="error-banner">Auth: {connectionError}</div>}
 
                         <button
+                            type="button"
                             onClick={handleJoin}
                             disabled={isJoining || joinedCount >= maxPlayers || !playerId}
                             className="join-button"
                         >
-                            {!playerId ? 'Connecting...' : (isJoining ? 'Joining...' : 'Join Game')}
+                            <span>{!playerId ? 'Connecting…' : (isJoining ? 'Joining…' : 'Join the game')}</span>
+                            {playerId && !isJoining && <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M5 12h14M13 6l6 6-6 6" strokeLinecap="round" strokeLinejoin="round" /></svg>}
                         </button>
 
                         {joinedCount >= maxPlayers && (
-                            <p className="error-banner" style={{ background: 'rgba(255, 255, 255, 0.05)', color: '#fff', borderColor: 'transparent' }}>
+                            <p className="notice-banner">
                                 Lobby is full ({maxPlayers}/{maxPlayers})
                             </p>
                         )}
+
+                        <div className="quick-rules" aria-label="Game highlights">
+                            <span><i>01</i> Place</span>
+                            <span><i>02</i> Charge</span>
+                            <span><i>03</i> Detonate</span>
+                        </div>
                     </div>
                 ) : (
-                    // LOBBY VIEW (JOINED)
                     <div className="joined-section">
-                        {/* Player List */}
                         <div className="players-section">
                             <div className="section-header">
-                                <span>Players</span>
-                                <span>{joinedCount}/{maxPlayers}</span>
+                                <span>Players ready</span>
+                                <strong>{joinedCount}<i>/</i>{maxPlayers}</strong>
                             </div>
 
                             <div className="players-grid">
@@ -198,7 +213,7 @@ export function Lobby({
                                                     {isMe ? 'You' : player.name}
                                                 </span>
                                                 <span className="player-status">
-                                                    {index === 0 ? 'Wait...' : 'Ready'}
+                                                    {player.id === gameState.hostId ? 'Match host' : 'Ready to react'}
                                                 </span>
                                             </div>
                                             {player.id === gameState.hostId && (
@@ -212,10 +227,10 @@ export function Lobby({
                                 {Array(maxPlayers - joinedCount).fill(null).map((_, i) => (
                                     <div key={`empty-${i}`} className="player-card empty">
                                         <div className="player-avatar">
-                                            <div className="player-orb" style={{ background: 'transparent', border: '2px dotted rgba(255,255,255,0.2)' }}></div>
+                                            <div className="player-orb empty-orb"></div>
                                         </div>
                                         <div className="player-info">
-                                            <span className="player-name" style={{ opacity: 0.5 }}>Empty</span>
+                                            <span className="player-name empty-name">Waiting…</span>
                                         </div>
                                     </div>
                                 ))}
@@ -230,6 +245,7 @@ export function Lobby({
                                     <div className="player-count-buttons">
                                         {[2, 3, 4].map(count => (
                                             <button
+                                                type="button"
                                                 key={count}
                                                 className={`count-btn ${maxPlayers === count ? 'active' : ''}`}
                                                 onClick={() => handlePlayerCountChange(count)}
@@ -242,6 +258,7 @@ export function Lobby({
                                 </div>
 
                                 <button
+                                    type="button"
                                     onClick={handleStart}
                                     disabled={joinedCount < 2}
                                     className="start-button"
@@ -253,8 +270,8 @@ export function Lobby({
 
                         {/* Waiting Message for Non-Host */}
                         {!isHost && (
-                            <div className="error-banner" style={{ background: 'rgba(255, 255, 255, 0.05)', color: '#fff', borderColor: 'transparent' }}>
-                                Waiting for host to start...
+                            <div className="notice-banner waiting-host">
+                                <span className="waiting-pulse" /> Waiting for the host to launch
                             </div>
                         )}
                     </div>
@@ -262,18 +279,18 @@ export function Lobby({
 
                 {/* Footer Actions */}
                 <div className="lobby-footer">
-                    <button className="icon-button" onClick={() => setShowRules(true)}>
+                    <button type="button" className="icon-button" onClick={() => setShowRules(true)}>
                         <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
                         How to Play
                     </button>
 
-                    <button className="icon-button" onClick={copyInviteLink}>
+                    <button type="button" className={`icon-button ${inviteCopied ? 'success' : ''}`} onClick={copyInviteLink}>
                         <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
-                        Invite
+                        {inviteCopied ? 'Copied!' : 'Invite'}
                     </button>
 
                     {isInGame && (
-                        <button className="icon-button danger" onClick={onLeave}>
+                        <button type="button" className="icon-button danger" onClick={onLeave} aria-label="Leave lobby">
                             <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
                         </button>
                     )}
@@ -281,29 +298,29 @@ export function Lobby({
 
                 {/* Rules Overlay */}
                 {showRules && (
-                    <div className="rules-overlay">
+                    <div className="rules-overlay" role="dialog" aria-modal="true" aria-labelledby="rules-title">
                         <div className="rules-header">
-                            <span>How to Play</span>
-                            <button className="close-btn" onClick={() => setShowRules(false)}>
+                            <div><small>The essentials</small><span id="rules-title">How to play</span></div>
+                            <button type="button" className="close-btn" onClick={() => setShowRules(false)} aria-label="Close rules">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
                             </button>
                         </div>
                         <ul className="rules-list">
                             <li>
-                                <div className="rule-icon">🎯</div>
-                                <span>Place atoms on empty cells or cells you already own.</span>
+                                <div className="rule-icon">01</div>
+                                <span><strong>Claim a cell</strong>Place atoms on empty cells or cells you already own.</span>
                             </li>
                             <li>
-                                <div className="rule-icon">💥</div>
-                                <span>Cells explode when they reach critical mass (Number of neighbours).</span>
+                                <div className="rule-icon">02</div>
+                                <span><strong>Reach critical mass</strong>Every cell has a limit based on its neighbors.</span>
                             </li>
                             <li>
-                                <div className="rule-icon">⚡</div>
-                                <span>Explosions claim neighboring cells for you.</span>
+                                <div className="rule-icon">03</div>
+                                <span><strong>Start a chain</strong>Explosions spread your color into neighboring cells.</span>
                             </li>
                             <li>
-                                <div className="rule-icon">🏆</div>
-                                <span>Eliminate all opponents to win the game!</span>
+                                <div className="rule-icon">04</div>
+                                <span><strong>Own the board</strong>Eliminate every opponent to win the match.</span>
                             </li>
                         </ul>
                     </div>

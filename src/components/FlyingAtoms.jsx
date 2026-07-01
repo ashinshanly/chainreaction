@@ -13,37 +13,23 @@ export function FlyingAtoms({ atoms }) {
         const canvas = canvasRef.current;
         if (!canvas) return;
 
-        // Handle high-DPI displays
-        const dpr = window.devicePixelRatio || 1;
-        const rect = canvas.getBoundingClientRect();
-
-        canvas.width = rect.width * dpr;
-        canvas.height = rect.height * dpr;
-
-        const ctx = canvas.getContext('2d');
-        ctx.scale(dpr, dpr);
-
-        // Core physics engine
         const engine = new PhysicsRenderer(canvas, GRID_ROWS, GRID_COLS);
-        // Correct internal dimensions for logic mapping
-        engine.resize(rect.width, rect.height);
+        const resizeCanvas = () => {
+            const rect = canvas.getBoundingClientRect();
+            engine.resize(rect.width, rect.height, Math.min(window.devicePixelRatio || 1, 2));
+        };
+
+        resizeCanvas();
 
         engine.start();
         engineRef.current = engine;
 
-        const handleResize = () => {
-            const newRect = canvas.getBoundingClientRect();
-            canvas.width = newRect.width * dpr;
-            canvas.height = newRect.height * dpr;
-            ctx.scale(dpr, dpr);
-            engine.resize(newRect.width, newRect.height);
-        };
-
-        window.addEventListener('resize', handleResize);
+        const resizeObserver = new ResizeObserver(resizeCanvas);
+        resizeObserver.observe(canvas);
 
         return () => {
             engine.stop();
-            window.removeEventListener('resize', handleResize);
+            resizeObserver.disconnect();
         };
     }, []);
 

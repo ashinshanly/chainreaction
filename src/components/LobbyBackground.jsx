@@ -1,6 +1,74 @@
 import React, { useEffect, useRef } from 'react';
 import { PLAYER_COLORS } from '../utils/gameLogic';
 
+function createParticle(width, height) {
+    const size = Math.random() * 12 + 8;
+    const vx = (Math.random() - 0.5) * 1.5;
+    const vy = (Math.random() - 0.5) * 1.5;
+    return {
+        x: Math.random() * width,
+        y: Math.random() * height,
+        vx,
+        vy,
+        size,
+        color: PLAYER_COLORS[Math.floor(Math.random() * PLAYER_COLORS.length)].primary,
+        mass: size,
+        baseVx: vx,
+        baseVy: vy
+    };
+}
+
+function updateParticle(particle, mouse, width, height) {
+    const dx = particle.x - mouse.x;
+    const dy = particle.y - mouse.y;
+    const dist = Math.sqrt(dx * dx + dy * dy);
+    const repulsionRadius = 250;
+
+    if (dist < repulsionRadius) {
+        const force = (repulsionRadius - dist) / repulsionRadius;
+        const angle = Math.atan2(dy, dx);
+        particle.vx += Math.cos(angle) * force * 2.5;
+        particle.vy += Math.sin(angle) * force * 2.5;
+    }
+
+    particle.vx *= 0.98;
+    particle.vy *= 0.98;
+    if (Math.abs(particle.vx) < Math.abs(particle.baseVx)) particle.vx += particle.baseVx * 0.02;
+    if (Math.abs(particle.vy) < Math.abs(particle.baseVy)) particle.vy += particle.baseVy * 0.02;
+    particle.x += particle.vx;
+    particle.y += particle.vy;
+
+    if (particle.x - particle.size < 0 || particle.x + particle.size > width) {
+        particle.x = Math.max(particle.size, Math.min(width - particle.size, particle.x));
+        particle.vx *= -1;
+    }
+    if (particle.y - particle.size < 0 || particle.y + particle.size > height) {
+        particle.y = Math.max(particle.size, Math.min(height - particle.size, particle.y));
+        particle.vy *= -1;
+    }
+}
+
+function drawParticle(ctx, particle) {
+    ctx.beginPath();
+    ctx.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2);
+    const gradient = ctx.createRadialGradient(
+        particle.x - particle.size * 0.3,
+        particle.y - particle.size * 0.3,
+        particle.size * 0.1,
+        particle.x,
+        particle.y,
+        particle.size
+    );
+    gradient.addColorStop(0, '#ffffff');
+    gradient.addColorStop(0.3, particle.color);
+    gradient.addColorStop(1, particle.color);
+    ctx.shadowBlur = 15;
+    ctx.shadowColor = particle.color;
+    ctx.fillStyle = gradient;
+    ctx.fill();
+    ctx.shadowBlur = 0;
+}
+
 export function LobbyBackground() {
     const canvasRef = useRef(null);
 
@@ -10,12 +78,10 @@ export function LobbyBackground() {
         let width = window.innerWidth;
         let height = window.innerHeight;
         let animationFrameId;
+        const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
         // Mouse Interaction
         const mouse = { x: -1000, y: -1000 };
-        const repulsionRadius = 250; // Radius where repulsion starts
-        const repulsionStrength = 2.5; // How hard it pushes
-
         const handleMouseMove = (e) => {
             mouse.x = e.clientX;
             mouse.y = e.clientY;
@@ -28,109 +94,27 @@ export function LobbyBackground() {
             }
         };
 
-        window.addEventListener('mousemove', handleMouseMove);
-        window.addEventListener('touchmove', handleTouchMove);
+        if (!reducedMotion) {
+            window.addEventListener('mousemove', handleMouseMove, { passive: true });
+            window.addEventListener('touchmove', handleTouchMove, { passive: true });
+        }
 
         // Particle System
         const particles = [];
-        const particleCount = 20;
-
-        class Particle {
-            constructor() {
-                this.x = Math.random() * width;
-                this.y = Math.random() * height;
-                this.vx = (Math.random() - 0.5) * 1.5;
-                this.vy = (Math.random() - 0.5) * 1.5;
-                this.size = Math.random() * 12 + 8;
-                const colorObj = PLAYER_COLORS[Math.floor(Math.random() * PLAYER_COLORS.length)];
-                this.color = colorObj.primary;
-                this.mass = this.size;
-                this.baseVx = this.vx;
-                this.baseVy = this.vy;
-            }
-
-            update() {
-                // Mouse Repulsion
-                const dx = this.x - mouse.x;
-                const dy = this.y - mouse.y;
-                const dist = Math.sqrt(dx * dx + dy * dy);
-
-                if (dist < repulsionRadius) {
-                    const force = (repulsionRadius - dist) / repulsionRadius; // 0 to 1
-                    const angle = Math.atan2(dy, dx);
-
-                    // Push away
-                    this.vx += Math.cos(angle) * force * repulsionStrength;
-                    this.vy += Math.sin(angle) * force * repulsionStrength;
-                }
-
-                // Drag to stabilize speed
-                this.vx *= 0.98;
-                this.vy *= 0.98;
-
-                // Recover speed if too slow
-                if (Math.abs(this.vx) < Math.abs(this.baseVx)) this.vx += this.baseVx * 0.02;
-                if (Math.abs(this.vy) < Math.abs(this.baseVy)) this.vy += this.baseVy * 0.02;
-
-                this.x += this.vx;
-                this.y += this.vy;
-
-                // Wall Collisions
-                if (this.x - this.size < 0) {
-                    this.x = this.size;
-                    this.vx *= -1;
-                }
-                if (this.x + this.size > width) {
-                    this.x = width - this.size;
-                    this.vx *= -1;
-                }
-                if (this.y - this.size < 0) {
-                    this.y = this.size;
-                    this.vy *= -1;
-                }
-                if (this.y + this.size > height) {
-                    this.y = height - this.size;
-                    this.vy *= -1;
-                }
-            }
-
-            draw() {
-                ctx.beginPath();
-                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
-
-                const gradient = ctx.createRadialGradient(
-                    this.x - this.size * 0.3,
-                    this.y - this.size * 0.3,
-                    this.size * 0.1,
-                    this.x,
-                    this.y,
-                    this.size
-                );
-                // Opaque & Glowy Look
-                gradient.addColorStop(0, '#ffffff');
-                gradient.addColorStop(0.3, this.color);
-                gradient.addColorStop(1, this.color);
-
-                ctx.fillStyle = gradient;
-                ctx.fill();
-
-                ctx.shadowBlur = 15;
-                ctx.shadowColor = this.color;
-                ctx.fill();
-                ctx.shadowBlur = 0;
-            }
-        }
+        const particleCount = reducedMotion ? 12 : Math.min(22, Math.max(14, Math.round(window.innerWidth / 70)));
 
         // Initialize
         for (let i = 0; i < particleCount; i++) {
-            particles.push(new Particle());
+            particles.push(createParticle(width, height));
         }
 
         const handleResize = () => {
             width = window.innerWidth;
             height = window.innerHeight;
-            canvas.width = width;
-            canvas.height = height;
+            const dpr = Math.min(window.devicePixelRatio || 1, 2);
+            canvas.width = Math.round(width * dpr);
+            canvas.height = Math.round(height * dpr);
+            ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
         };
 
         const checkCollisions = () => {
@@ -182,21 +166,32 @@ export function LobbyBackground() {
             checkCollisions();
 
             particles.forEach(p => {
-                p.update();
-                p.draw();
+                updateParticle(p, mouse, width, height);
+                drawParticle(ctx, p);
             });
 
-            animationFrameId = requestAnimationFrame(animate);
+            if (!reducedMotion) animationFrameId = requestAnimationFrame(animate);
+        };
+
+        const handleVisibility = () => {
+            if (document.hidden) {
+                cancelAnimationFrame(animationFrameId);
+            } else if (!reducedMotion) {
+                cancelAnimationFrame(animationFrameId);
+                animationFrameId = requestAnimationFrame(animate);
+            }
         };
 
         handleResize();
         window.addEventListener('resize', handleResize);
+        document.addEventListener('visibilitychange', handleVisibility);
         animate();
 
         return () => {
             window.removeEventListener('resize', handleResize);
             window.removeEventListener('mousemove', handleMouseMove);
             window.removeEventListener('touchmove', handleTouchMove);
+            document.removeEventListener('visibilitychange', handleVisibility);
             cancelAnimationFrame(animationFrameId);
         };
     }, []);
